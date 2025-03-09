@@ -25,8 +25,14 @@ where
     /// The type of [`System`] that this instance converts into.
     type System: System<In = In, Out = Out>;
 
+    /// Some optional state required for initializing a system (usually for system_params)
+    type State;
+
     /// Turns this value into its corresponding [`System`].
     fn into_system(self) -> Self::System;
+
+    /// Turns this value into its corresponding [`System`] with the provided state
+    fn into_system_with_state(self, state: Self::State) -> Self::System;
 
     /// Export system metadata
     fn into_metadata() -> common::System<'static>;

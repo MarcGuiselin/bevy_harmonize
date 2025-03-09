@@ -19,7 +19,7 @@ where
     F: SystemParamFunction<Marker>,
 {
     func: F,
-    param_state: <F::Param as SystemParam>::State,
+    state: <F::Param as SystemParam>::State,
     name: &'static str,
 }
 
@@ -91,10 +91,16 @@ where
 {
     type System = FunctionSystem<Marker, F>;
 
+    type State = <F::Param as SystemParam>::State;
+
     fn into_system(self) -> Self::System {
+        self.into_system_with_state(F::Param::init_state())
+    }
+
+    fn into_system_with_state(self, state: Self::State) -> Self::System {
         FunctionSystem {
             func: self,
-            param_state: F::Param::init_state(),
+            state,
             name: std::any::type_name::<F>(),
         }
     }
@@ -123,7 +129,7 @@ where
 
     #[inline]
     fn run(&mut self, input: Self::In) -> Self::Out {
-        let params = F::Param::get_param(&mut self.param_state);
+        let params = F::Param::get_param(&mut self.state);
         let out = self.func.run(input, params);
         out
     }
