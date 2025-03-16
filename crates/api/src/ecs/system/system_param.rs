@@ -4,7 +4,7 @@ pub type Params = Vec<common::Param<'static>>;
 
 pub trait SystemParam: Sized {
     /// Used to store data which persists across invocations of a system.
-    type State: Send + Sync + 'static;
+    type State: 'static;
 
     /// The item type returned when constructing this system param.
     /// The value of this associated type should be `Self`, instantiated with new lifetimes.

@@ -26,7 +26,7 @@ where
 macro_rules! impl_system_function {
     ($($param: ident),*) => {
         #[allow(non_snake_case)]
-        impl<Out, Func: Send + Sync + 'static, $($param: SystemParam),*> SystemParamFunction<fn($($param,)*) -> Out> for Func
+        impl<Out, Func: 'static, $($param: SystemParam),*> SystemParamFunction<fn($($param,)*) -> Out> for Func
         where
         for <'a> &'a mut Func:
                 FnMut($($param),*) -> Out +
@@ -53,7 +53,7 @@ macro_rules! impl_system_function {
         }
 
         #[allow(non_snake_case)]
-        impl<Input, Out, Func: Send + Sync + 'static, $($param: SystemParam),*> SystemParamFunction<fn(In<Input>, $($param,)*) -> Out> for Func
+        impl<Input, Out, Func: 'static, $($param: SystemParam),*> SystemParamFunction<fn(In<Input>, $($param,)*) -> Out> for Func
         where
         for <'a> &'a mut Func:
                 FnMut(In<Input>, $($param),*) -> Out +
@@ -142,7 +142,7 @@ where
 )]
 pub trait SystemParamFunction<Marker>
 where
-    Self: Send + Sync + 'static,
+    Self: 'static,
 {
     /// The input type to this system. See [`System::In`].
     type In;
