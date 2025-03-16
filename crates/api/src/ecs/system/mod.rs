@@ -32,7 +32,9 @@ where
     fn into_system(self) -> Self::System;
 
     /// Turns this value into its corresponding [`System`] with the provided state
-    fn into_system_with_state(self, state: Self::State) -> Self::System;
+    ///
+    /// SAFETY: Valid State must be provided
+    unsafe fn into_system_with_state(self, state: Self::State) -> Self::System;
 
     /// Export system metadata
     fn into_metadata() -> common::System<'static>;

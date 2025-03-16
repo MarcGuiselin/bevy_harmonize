@@ -26,18 +26,20 @@ impl<'a, T> SystemParam for ResMut<'a, T>
 where
     T: Resource,
 {
-    type State = (ComponentId, T);
+    type State = (ComponentId, *mut u8);
     type Item<'state> = ResMut<'state, T>;
 
     fn init_state() -> Self::State {
         unimplemented!()
     }
 
-    fn get_param<'state>((id, value): &'state mut Self::State) -> Self::Item<'state> {
+    fn get_param<'state>((id, ptr): &'state mut Self::State) -> Self::Item<'state> {
+        let ptr = (*ptr).cast::<T>();
         ResMut {
             id,
             changed: false,
-            value,
+            // SAFETY: It is expected a valid pointer was provided to IntoSystem::into_system_with_state
+            value: unsafe { &mut *ptr },
         }
     }
 

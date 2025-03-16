@@ -94,10 +94,12 @@ where
     type State = <F::Param as SystemParam>::State;
 
     fn into_system(self) -> Self::System {
-        self.into_system_with_state(F::Param::init_state())
+        let state = F::Param::init_state();
+        // SAFETY: init_state always either produces a valid state or panics
+        unsafe { self.into_system_with_state(state) }
     }
 
-    fn into_system_with_state(self, state: Self::State) -> Self::System {
+    unsafe fn into_system_with_state(self, state: Self::State) -> Self::System {
         FunctionSystem {
             func: self,
             state,
