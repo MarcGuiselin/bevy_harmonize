@@ -1,6 +1,6 @@
-use bevy_reflect::{FromReflect, GetTypeRegistration, Typed};
-
-use crate::runtime::serialize;
+use bevy_reflect::{
+    serde::TypedReflectSerializer, FromReflect, GetTypeRegistration, TypeRegistry, Typed,
+};
 
 pub trait Resource
 where
@@ -10,7 +10,10 @@ where
 
     fn default_value_as_buffer() -> Vec<u8> {
         let value = Self::default_value();
-        serialize(&value)
+
+        let registry = TypeRegistry::new();
+        let serializer = TypedReflectSerializer::new(&value, &registry);
+        bitcode::serialize(&serializer).unwrap()
     }
 }
 

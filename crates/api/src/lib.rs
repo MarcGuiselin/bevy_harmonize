@@ -12,7 +12,6 @@ compile_error!(
 pub mod __internal;
 
 pub mod ecs;
-pub mod runtime;
 pub mod schema;
 
 pub mod prelude {

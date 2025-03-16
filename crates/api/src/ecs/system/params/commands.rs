@@ -1,12 +1,13 @@
 use std::marker::PhantomData;
 
 use bevy_reflect::FromReflect;
-use common::StableId;
 
-use crate::{
-    ecs::system::{system_param::Params, SystemParam},
-    runtime::{ffi_set_component, ffi_spawn_empty, serialize},
-};
+use crate::ecs::system::{system_param::Params, SystemParam};
+
+#[link(wasm_import_module = "bevy_harmonize")]
+extern "C" {
+    fn spawn_empty() -> u32;
+}
 
 pub struct Commands<'a>(
     // SystemParams should not be able to live outside a system
@@ -33,7 +34,7 @@ impl<'a> SystemParam for Commands<'a> {
 /// Similar to bevy_ecs::system::commands::Commands
 impl<'a> Commands<'a> {
     pub fn spawn_empty(&mut self) -> EntityCommands<'a> {
-        let id = ffi_spawn_empty();
+        let id = unsafe { spawn_empty() };
         EntityCommands(id, PhantomData)
     }
 }
@@ -46,11 +47,8 @@ pub struct EntityCommands<'a>(
 
 impl<'a> EntityCommands<'a> {
     // TODO: replace with insert<T: Bundle>(&mut self, bundle: T)
-    pub fn insert_component(&mut self, component: impl FromReflect) -> &mut Self {
-        let type_id = StableId::from_dynamic(&component);
-        let value = serialize(&component);
-        ffi_set_component(self.0, &type_id, &value);
-        self
+    pub fn insert_component(&mut self, _component: impl FromReflect) -> &mut Self {
+        unimplemented!()
     }
 
     pub fn id(&self) -> Entity {

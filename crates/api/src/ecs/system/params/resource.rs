@@ -1,47 +1,43 @@
-use std::{
-    cell::OnceCell,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use common::StableId;
 
-use crate::{
-    ecs::{
-        system::{system_param::Params, SystemParam},
-        Resource,
-    },
-    runtime::{
-        deserialize, ffi_get_local_type_id, ffi_get_resource, ffi_set_resource, serialize,
-        LocalTypeId,
-    },
+use crate::ecs::{
+    generic::ComponentId,
+    system::{system_param::Params, SystemParam},
+    Resource,
 };
+
+#[link(wasm_import_module = "bevy_harmonize")]
+extern "C" {
+    fn flag_component_changed(component_id: u32);
+}
 
 pub struct ResMut<'w, T>
 where
     T: Resource,
 {
-    type_id: &'w LocalTypeId,
+    id: &'w ComponentId,
     changed: bool,
-    value: OnceCell<T>,
+    value: &'w mut T,
 }
 
 impl<'a, T> SystemParam for ResMut<'a, T>
 where
     T: Resource,
 {
-    type State = LocalTypeId;
+    type State = (ComponentId, T);
     type Item<'state> = ResMut<'state, T>;
 
     fn init_state() -> Self::State {
-        let id = StableId::from_typed::<T>();
-        ffi_get_local_type_id(&id)
+        unimplemented!()
     }
 
-    fn get_param<'state>(state: &'state mut Self::State) -> Self::Item<'state> {
+    fn get_param<'state>((id, value): &'state mut Self::State) -> Self::Item<'state> {
         ResMut {
-            type_id: state,
+            id,
             changed: false,
-            value: OnceCell::new(),
+            value,
         }
     }
 
@@ -61,10 +57,7 @@ where
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        self.value.get_or_init(|| {
-            let bytes = ffi_get_resource(self.type_id);
-            deserialize(&bytes)
-        })
+        self.value
     }
 }
 
@@ -86,11 +79,7 @@ where
     #[track_caller]
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.changed = true;
-        self.value.get_or_init(|| {
-            let bytes = ffi_get_resource(self.type_id);
-            deserialize(&bytes)
-        });
-        self.value.get_mut().unwrap()
+        self.value
     }
 }
 
@@ -110,9 +99,7 @@ where
 {
     fn drop(&mut self) {
         if self.changed {
-            let value = self.value.get().unwrap();
-            let buffer = serialize(value);
-            ffi_set_resource(self.type_id, &buffer);
+            unsafe { flag_component_changed(self.id.0) }
         }
     }
 }
