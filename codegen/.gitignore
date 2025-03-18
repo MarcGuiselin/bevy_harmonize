@@ -1,2 +1,3 @@
 crates/*
 !crates/empty
+!crates/my_cube_test

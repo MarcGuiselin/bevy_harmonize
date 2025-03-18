@@ -3,40 +3,37 @@ use std::ops::{Deref, DerefMut};
 use common::StableId;
 
 use crate::ecs::{
-    generic::ComponentId,
     system::{system_param::Params, SystemParam},
     Resource,
 };
 
 #[link(wasm_import_module = "bevy_harmonize")]
 extern "C" {
-    fn flag_component_changed(component_id: u32);
+    fn flag_component_changed(component_id: usize);
 }
 
-pub struct ResMut<'w, T>
+pub struct ResMut<'w, const IDEN: usize, T>
 where
     T: Resource,
 {
-    id: &'w ComponentId,
     changed: bool,
     value: &'w mut T,
 }
 
-impl<'a, T> SystemParam for ResMut<'a, T>
+impl<'a, const IDEN: usize, T> SystemParam for ResMut<'a, IDEN, T>
 where
     T: Resource,
 {
-    type State = (ComponentId, *mut u8);
-    type Item<'state> = ResMut<'state, T>;
+    type State = ();
+    type Item<'state> = ResMut<'state, IDEN, T>;
 
     fn init_state() -> Self::State {
-        unimplemented!()
+        ()
     }
 
-    fn get_param<'state>((id, ptr): &'state mut Self::State) -> Self::Item<'state> {
-        let ptr = (*ptr).cast::<T>();
+    fn get_param<'state>(_: &'state mut Self::State) -> Self::Item<'state> {
+        let ptr = const { IDEN } as *mut T;
         ResMut {
-            id,
             changed: false,
             // SAFETY: It is expected a valid pointer was provided to IntoSystem::into_system_with_state
             value: unsafe { &mut *ptr },
@@ -51,7 +48,7 @@ where
     }
 }
 
-impl<'w, T> Deref for ResMut<'w, T>
+impl<'w, const IDEN: usize, T> Deref for ResMut<'w, IDEN, T>
 where
     T: Resource,
 {
@@ -63,7 +60,7 @@ where
     }
 }
 
-impl<'w, T> AsRef<T> for ResMut<'w, T>
+impl<'w, const IDEN: usize, T> AsRef<T> for ResMut<'w, IDEN, T>
 where
     T: Resource,
 {
@@ -73,7 +70,7 @@ where
     }
 }
 
-impl<'w, T> DerefMut for ResMut<'w, T>
+impl<'w, const IDEN: usize, T> DerefMut for ResMut<'w, IDEN, T>
 where
     T: Resource,
 {
@@ -85,7 +82,7 @@ where
     }
 }
 
-impl<'w, T> AsMut<T> for ResMut<'w, T>
+impl<'w, const IDEN: usize, T> AsMut<T> for ResMut<'w, IDEN, T>
 where
     T: Resource,
 {
@@ -95,13 +92,13 @@ where
     }
 }
 
-impl<'w, T> Drop for ResMut<'w, T>
+impl<'w, const IDEN: usize, T> Drop for ResMut<'w, IDEN, T>
 where
     T: Resource,
 {
     fn drop(&mut self) {
         if self.changed {
-            unsafe { flag_component_changed(self.id.0) }
+            unsafe { flag_component_changed(const { IDEN }) }
         }
     }
 }

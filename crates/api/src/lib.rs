@@ -2,6 +2,7 @@
 // It produces an error saying the feature const_trait_impl is not enabled, but when enabled warns that it is already enabled (due to RUSTFLAGS)
 // Thus, to run tests it is necessary to set RUSTFLAGS="" and use the feature "test"
 #![cfg_attr(feature = "test", feature(const_trait_impl))]
+#![feature(const_trait_impl)]
 
 #[cfg(all(feature = "generate_manifest", feature = "wasm_runtime"))]
 compile_error!(
@@ -26,8 +27,4 @@ pub mod prelude {
 
     // Schedules
     pub use common::{Start, Update};
-
-    // Native bevy types
-    pub use bevy_math::prelude::*;
-    pub use bevy_transform::components::*;
 }

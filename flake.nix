@@ -34,7 +34,9 @@
           buildInputs = with pkgs; [
             # Dev tools
             nixd
-            
+            wabt
+            wasm-bindgen-cli
+
             # Build tools
             pkg-config
           ] ++ lib.optionals stdenv.isLinux [
@@ -57,7 +59,6 @@
             inherit buildInputs;
 
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath buildInputs;
-            RUSTFLAGS="-Z crate-attr=feature(const_trait_impl)";
           };
         }
       );

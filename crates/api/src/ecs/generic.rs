@@ -1,8 +1,5 @@
 use bevy_reflect::Typed;
 
-/// Identifies Resources and Components at runtime
-pub struct ComponentId(pub u32);
-
 /// A generic trait to mark types that can be used as any of the following:
 ///
 /// - Components

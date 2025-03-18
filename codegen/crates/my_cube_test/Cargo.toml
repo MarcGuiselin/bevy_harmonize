@@ -1,0 +1,18 @@
+# This Cargo.toml file is auto-generated to compile mod my_cube.rs
+#
+# Modloader Version: 0.0.0
+# Dev Mode: debug
+# Build mode: Local
+
+[package]
+name = "my_cube_test"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+path = "lib.rs"
+
+[dependencies]
+api = { package = "bevy_harmonize_api", path = "../../../crates/api" }
+my_cube = { package = "my_cube_9c39e062", path = "../my_cube_9c39e062" }
