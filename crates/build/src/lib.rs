@@ -291,15 +291,6 @@ where
         .env("RUSTFLAGS", "-C link-arg=--import-memory")
         .stderr(Stdio::piped());
 
-    command
-        .inner
-        .arg("--features")
-        .arg(if build_type == BuildType::GenerateManifest {
-            "generate_manifest"
-        } else {
-            "wasm_runtime"
-        });
-
     if build_type == BuildType::Release {
         command.inner.arg("--release");
     }
