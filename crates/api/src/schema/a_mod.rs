@@ -59,6 +59,8 @@ impl Mod {
 // Tests
 #[cfg(test)]
 mod tests {
+    use crate::ecs::Addressable;
+
     use super::*;
     use bevy_reflect::Reflect;
     use common::{StableId, Start, Update};
@@ -73,6 +75,8 @@ mod tests {
     fn add_resource() {
         #[derive(Reflect, Debug)]
         struct TestResource(u32);
+
+        unsafe impl Addressable for TestResource {}
 
         impl Default for TestResource {
             fn default() -> Self {

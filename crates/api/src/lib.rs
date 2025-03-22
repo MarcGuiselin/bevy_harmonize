@@ -21,10 +21,12 @@ pub mod prelude {
 
     pub use crate::ecs::{
         system::{Commands, IntoSchedule, IntoSystemSet, ResMut},
-        Reflected, Resource,
+        Addressable, Reflected, Resource,
     };
     pub use crate::schema::{Mod, Schema};
 
     // Schedules
     pub use common::{Start, Update};
+
+    pub use derive::Addressable;
 }

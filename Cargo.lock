@@ -853,6 +853,7 @@ name = "bevy_harmonize_api"
 version = "0.0.0"
 dependencies = [
  "bevy_harmonize_common",
+ "bevy_harmonize_derive",
  "bevy_math",
  "bevy_reflect",
  "bevy_reflect_derive",
@@ -891,6 +892,14 @@ dependencies = [
  "bevy_reflect",
  "bevy_reflect_derive",
  "bitcode",
+]
+
+[[package]]
+name = "bevy_harmonize_derive"
+version = "0.0.0"
+dependencies = [
+ "quote 1.0.40",
+ "syn 1.0.109",
 ]
 
 [[package]]

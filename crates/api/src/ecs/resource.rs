@@ -2,9 +2,11 @@ use bevy_reflect::{
     serde::TypedReflectSerializer, FromReflect, GetTypeRegistration, TypeRegistry, Typed,
 };
 
+use super::Addressable;
+
 pub trait Resource
 where
-    Self: Sized + Typed + FromReflect + GetTypeRegistration,
+    Self: Sized + Typed + FromReflect + GetTypeRegistration + Addressable,
 {
     fn default_value() -> Self;
 
@@ -19,7 +21,7 @@ where
 
 impl<R> Resource for R
 where
-    R: Sized + Typed + FromReflect + GetTypeRegistration + Default,
+    R: Sized + Typed + FromReflect + GetTypeRegistration + Addressable + Default,
 {
     fn default_value() -> Self {
         Self::default()

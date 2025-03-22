@@ -70,7 +70,10 @@ mod tests {
         FieldSignature, Param, Schedule, Start, System, SystemId, TypeSignature, VariantSignature,
     };
 
-    use crate::{ecs::system::IntoSystem, schema::Mod};
+    use crate::{
+        ecs::{system::IntoSystem, Addressable},
+        schema::Mod,
+    };
 
     use super::*;
 
@@ -92,6 +95,8 @@ mod tests {
             foo: u32,
             bar: MyEnum,
         }
+
+        unsafe impl Addressable for MyStruct {}
 
         impl Default for MyStruct {
             fn default() -> Self {

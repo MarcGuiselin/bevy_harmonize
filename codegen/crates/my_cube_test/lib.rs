@@ -6,6 +6,6 @@ use api::ecs::system::{IntoSystem, System};
 
 #[no_mangle]
 pub unsafe extern "C" fn run() {
-    let mut sys = IntoSystem::into_system(my_cube::update_frame_count::<54321>);
+    let mut sys = IntoSystem::into_system(my_cube::update_frame_count);
     sys.run(());
 }
