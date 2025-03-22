@@ -4,4 +4,5 @@
 
 clean-codegen
 cargo test -p const_vec
-RUSTFLAGS="" cargo test -p bevy_harmonize_api --features "test"
+cargo test -p bevy_harmonize_api
+cargo test -p bevy_harmonize_manifest

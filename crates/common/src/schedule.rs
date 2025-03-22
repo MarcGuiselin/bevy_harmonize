@@ -7,7 +7,7 @@ pub struct ScheduleDescriptor<'a> {
 }
 
 /// Describes how to create a schedule
-#[derive(Encode, Decode, PartialEq, Debug, Default)]
+#[derive(Encode, Decode, PartialEq, Debug, Default, Clone)]
 pub struct Schedule<'a> {
     pub systems: Vec<System<'a>>,
     pub constraints: Vec<Constraint<'a>>,
@@ -16,7 +16,7 @@ pub struct Schedule<'a> {
 /// Constraints that define the order of systems in the schedule
 ///
 /// These must always be checked for validity before being loaded by the modloader
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Encode, Decode, PartialEq, Debug, Clone)]
 pub enum Constraint<'a> {
     /// One system set needs to run before another system set
     Order {
@@ -35,7 +35,7 @@ pub enum Constraint<'a> {
     },
 }
 
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Encode, Decode, PartialEq, Debug, Clone)]
 pub struct System<'a> {
     pub id: SystemId,
     pub name: &'a str,

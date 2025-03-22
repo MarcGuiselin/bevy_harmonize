@@ -903,6 +903,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_harmonize_manifest"
+version = "0.0.0"
+dependencies = [
+ "bevy_harmonize_api",
+ "bevy_harmonize_common",
+ "bevy_reflect",
+]
+
+[[package]]
 name = "bevy_hierarchy"
 version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

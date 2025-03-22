@@ -24,6 +24,82 @@ impl Schema {
             schedules: ConstVec::new(),
         }
     }
+
+    pub const fn name(&self) -> Option<&'static str> {
+        self.name
+    }
+
+    pub const fn types(&self) -> Types {
+        Types {
+            next: 0,
+            getters: self.types.into_slice(),
+        }
+    }
+
+    pub const fn resources(&self) -> Resources {
+        Resources {
+            next: 0,
+            getters: self.resources.into_slice(),
+        }
+    }
+
+    pub const fn schedules(&self) -> Schedules {
+        Schedules {
+            next: 0,
+            getters: self.schedules.into_slice(),
+        }
+    }
+}
+
+pub struct Types<'a> {
+    next: usize,
+    getters: &'a [fn() -> &'static TypeInfo],
+}
+
+impl<'a> Iterator for Types<'a> {
+    type Item = &'static TypeInfo;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self.getters.get(self.next).map(|getter| getter());
+        self.next += 1;
+        current
+    }
+}
+
+pub struct Resources<'a> {
+    next: usize,
+    getters: &'a [(fn() -> &'static TypeInfo, fn() -> Vec<u8>)],
+}
+
+impl<'a> Iterator for Resources<'a> {
+    type Item = (&'static TypeInfo, Vec<u8>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self
+            .getters
+            .get(self.next)
+            .map(|(getter1, getter2)| (getter1(), getter2()));
+        self.next += 1;
+        current
+    }
+}
+
+pub struct Schedules<'a> {
+    next: usize,
+    getters: &'a [(fn() -> &'static TypeInfo, Schedule)],
+}
+
+impl<'a> Iterator for Schedules<'a> {
+    type Item = (&'static TypeInfo, common::Schedule<'static>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self
+            .getters
+            .get(self.next)
+            .map(|(getter, schedule)| (getter(), schedule.build()));
+        self.next += 1;
+        current
+    }
 }
 
 // Tests

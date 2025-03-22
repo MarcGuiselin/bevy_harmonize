@@ -1,53 +1,52 @@
+#![feature(const_trait_impl)]
+
 use std::{any::TypeId, collections::HashMap};
 
+use api::schema::Schema;
 use common::{FeatureDescriptor, FileHash, ModManifest, ScheduleDescriptor, StableId};
 
-use crate::schema::Schema;
-
-use super::type_signatures::TypeSignatures;
+mod type_signatures;
+use type_signatures::TypeSignatures;
 
 pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
     let mut types = TypeSignatures::new();
-    for type_info_getter in schema.types.into_slice() {
-        let type_info = (type_info_getter)();
+    for type_info in schema.types() {
         types.register_type(type_info);
     }
 
     // There can only be one default per resource
     let mut resources = HashMap::new();
-    for (type_info_getter, value_getter) in schema.resources.into_slice() {
-        let type_info = (type_info_getter)();
+    for (type_info, value) in schema.resources() {
         types.register_type(type_info);
 
         let id = StableId::from_type_info(type_info);
-        let value = (value_getter)();
         resources.insert(type_info.type_id(), (id, value));
     }
     let resources = resources.into_values().collect();
 
     // Combine schedules with the same label together
     let mut schedules: HashMap<TypeId, ScheduleDescriptor<'_>> = HashMap::new();
-    for (type_info_getter, schedule) in schema.schedules.into_slice() {
-        let type_info = (type_info_getter)();
+    for (type_info, schedule) in schema.schedules() {
         types.register_type(type_info);
 
         let id = StableId::from_type_info(type_info);
+        let default = ScheduleDescriptor {
+            id,
+            schedule: schedule.clone(),
+        };
         schedules
             .entry(type_info.type_id())
             .and_modify(|descriptor| {
                 let common::Schedule {
                     systems,
                     constraints,
-                } = schedule.build();
+                } = schedule;
 
                 // TODO: dedupe systems and constraints
                 descriptor.schedule.systems.extend(systems);
                 descriptor.schedule.constraints.extend(constraints);
             })
-            .or_insert(ScheduleDescriptor {
-                id,
-                schedule: schedule.build(),
-            });
+            .or_insert(default);
     }
     let schedules = schedules.into_values().collect();
 
@@ -55,7 +54,7 @@ pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
         wasm_hash: FileHash::empty(),
         types: types.into_vec(),
         features: vec![FeatureDescriptor {
-            name: schema.name.unwrap_or("unknown"),
+            name: schema.name().unwrap_or("unknown"),
             resources,
             schedules,
         }],
@@ -65,14 +64,9 @@ pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
 // Tests
 #[cfg(test)]
 mod tests {
-    use bevy_reflect::Reflect;
+    use api::prelude::*;
     use common::{
         FieldSignature, Param, Schedule, Start, System, SystemId, TypeSignature, VariantSignature,
-    };
-
-    use crate::{
-        ecs::{system::IntoSystem, Addressable},
-        schema::Mod,
     };
 
     use super::*;

@@ -19,5 +19,4 @@ serde.workspace = true
 
 [features]
 generate_manifest = []
-test = []
 wasm_runtime = []

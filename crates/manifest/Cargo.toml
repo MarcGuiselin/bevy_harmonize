@@ -1,0 +1,10 @@
+[package]
+name = "bevy_harmonize_manifest"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+api = { package = "bevy_harmonize_api", path = "../api" }
+common = { package = "bevy_harmonize_common", path = "../common" }
+
+bevy_reflect.workspace = true
