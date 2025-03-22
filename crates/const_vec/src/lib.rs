@@ -1,10 +1,13 @@
+#![no_std]
 #![feature(const_type_name)]
 
 use const_panic::concat_panic;
-use std::{
+use core::{
+    any::type_name,
     fmt::{Debug, Formatter, Result},
     mem::MaybeUninit,
     ops::{Index, IndexMut},
+    slice::from_raw_parts,
 };
 
 #[derive(Clone, Copy)]
@@ -29,7 +32,7 @@ impl<T: Copy, const N: usize> ConstVec<T, N> {
     pub const fn push(&mut self, item: T) -> &mut Self {
         let capacity = const { N };
         if self.len >= capacity {
-            let type_name = std::any::type_name::<T>();
+            let type_name = type_name::<T>();
             concat_panic!(
                 "\nReached ConstVec<",
                 type_name,
@@ -47,7 +50,7 @@ impl<T: Copy, const N: usize> ConstVec<T, N> {
     pub const fn extend<const N2: usize>(&mut self, vec: ConstVec<T, N2>) -> &mut Self {
         let capacity = const { N };
         if self.len + vec.len > capacity {
-            let type_name = std::any::type_name::<T>();
+            let type_name = type_name::<T>();
             concat_panic!(
                 "\nCannot extend ",
                 vec.len,
@@ -76,7 +79,7 @@ impl<T: Copy, const N: usize> ConstVec<T, N> {
         let capacity = const { N };
 
         if slice.len() > capacity {
-            let type_name = std::any::type_name::<T>();
+            let type_name = type_name::<T>();
             concat_panic!(
                 "\nSlice length exceeds ConstVec<",
                 type_name,
@@ -97,27 +100,38 @@ impl<T: Copy, const N: usize> ConstVec<T, N> {
 
     pub const fn into_slice(&self) -> &[T] {
         // SAFETY: We are certain that all items in the buffer up to length are initialized
-        unsafe { std::slice::from_raw_parts(self.buffer.as_ptr() as *const T, self.len) }
+        unsafe {
+            let ptr = self.buffer.as_ptr() as *const T;
+            from_raw_parts(ptr, self.len)
+        }
     }
 
-    pub fn into_vec(&self) -> Vec<T> {
-        let mut vec = Vec::with_capacity(self.len);
-        for i in 0..self.len {
-            // SAFETY: We are certain that all items in the buffer up to length are initialized
-            vec.push(unsafe { self.buffer[i].assume_init() });
+    pub const fn iter(&self) -> ConstVecIter<'_, T> {
+        ConstVecIter {
+            next: 0,
+            slice: self.into_slice(),
         }
-        vec
+    }
+}
+
+pub struct ConstVecIter<'a, T> {
+    next: usize,
+    slice: &'a [T],
+}
+
+impl<'a, T> Iterator for ConstVecIter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self.slice.get(self.next);
+        self.next += 1;
+        current
     }
 }
 
 impl<T: Copy + Debug, const N: usize> Debug for ConstVec<T, N> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let entries: Vec<_> = self.buffer[0..self.len]
-            .iter()
-            // SAFETY: We are certain that all items in the buffer up to length are initialized
-            .map(|system| unsafe { system.assume_init() })
-            .collect();
-        f.debug_list().entries(entries).finish()
+        f.debug_list().entries(self.iter()).finish()
     }
 }
 
@@ -153,6 +167,9 @@ impl<T: Copy, const N: usize> Default for ConstVec<T, N> {
 mod tests {
     use super::*;
 
+    extern crate std;
+    use std::panic::catch_unwind;
+
     #[test]
     fn into_slice() {
         let mut vec = ConstVec::<u8, 128>::from_slice(&[1, 2, 3]);
@@ -166,21 +183,10 @@ mod tests {
     #[test]
     fn from_slice_panic() {
         let slice = &[1, 2, 3, 4, 5];
-        let result = std::panic::catch_unwind(|| {
+        let result = catch_unwind(|| {
             ConstVec::<u32, 4>::from_slice(slice);
         });
         assert!(result.is_err());
-    }
-
-    #[test]
-    fn into_vec() {
-        let mut vec = ConstVec::<&'static str, 10>::new();
-        vec.push("a");
-        vec.push("b");
-        vec.push("c");
-        assert!(vec.len() == 3);
-
-        assert_eq!(vec.into_vec(), vec!["a", "b", "c"]);
     }
 
     #[test]
@@ -190,7 +196,7 @@ mod tests {
         vec.push(1);
         vec.push(2);
 
-        let result = std::panic::catch_unwind(|| {
+        let result = catch_unwind(|| {
             let mut vec = vec;
             vec.push(3);
         });
@@ -209,7 +215,7 @@ mod tests {
         let vec1 = ConstVec::<u32, 4>::from_slice(&[1, 2]);
         let vec2 = ConstVec::<u32, 3>::from_slice(&[3, 4, 5]);
 
-        let result = std::panic::catch_unwind(|| {
+        let result = catch_unwind(|| {
             let mut vec1 = vec1;
             vec1.extend(vec2);
         });
@@ -228,7 +234,7 @@ mod tests {
     #[test]
     fn get_index_panic() {
         let vec = ConstVec::<u32, 4>::from_slice(&[1, 2, 3, 4]);
-        let result = std::panic::catch_unwind(|| {
+        let result = catch_unwind(|| {
             let _ = vec[4];
         });
         assert!(result.is_err());
@@ -248,7 +254,7 @@ mod tests {
     #[test]
     fn set_index_panic() {
         let vec = ConstVec::<u32, 4>::from_slice(&[1, 2, 3, 4]);
-        let result = std::panic::catch_unwind(|| {
+        let result = catch_unwind(|| {
             let mut vec = vec;
             vec[4] = 5;
         });
