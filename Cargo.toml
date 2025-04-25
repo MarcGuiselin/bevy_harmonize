@@ -66,11 +66,11 @@ wasmtime = "32.0"
 
 # Enable small optimizations for local code
 [profile.dev]
-opt-level = 1
+# opt-level = 1
 
 # Enable high optimizations for dependencies
 [profile.dev.package."*"]
-opt-level = 2 # TODO Set to 3 once stuff starts to stabilize
+# opt-level = 2 # TODO Set to 3 once stuff starts to stabilize
 
 [[example]]
 name = "client"
