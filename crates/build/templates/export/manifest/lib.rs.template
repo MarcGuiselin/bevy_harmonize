@@ -1,0 +1,11 @@
+#[no_mangle]
+pub unsafe extern "C" fn run() -> (u32, u32) {
+    let manifest = manifest_api::schema_to_manifest(source::SCHEMA);
+    let encoded: Vec<u8> = bitcode::encode(&manifest);
+
+    let ptr = encoded.as_ptr();
+    let len = encoded.len();
+    core::mem::forget(encoded);
+
+    (ptr as _, len as _)
+}

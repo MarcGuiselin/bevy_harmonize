@@ -5,15 +5,14 @@
 # Build mode: Local
 
 [package]
-name = "{{package_name}}"
+name = "{{name}}_export_systems"
 version = "0.0.0"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib"]
-path = "{{source_file}}"
+path = "lib.rs"
 
 [dependencies]
 api = { package = "bevy_harmonize_api", path = "../../../crates/api" }
-bevy_reflect.workspace = true
-bitcode.workspace = true
+{{name}}_source = { path = "../{{name}}_source" }

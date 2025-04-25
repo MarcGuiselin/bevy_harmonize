@@ -28,6 +28,10 @@ pub struct StableId<'a> {
 }
 
 impl<'a> StableId<'a> {
+    pub fn new(crate_name: &'a str, name: &'a str) -> Self {
+        StableId { crate_name, name }
+    }
+
     pub fn from_typed<T>() -> StableId<'static>
     where
         T: Typed,
@@ -159,7 +163,25 @@ pub struct ModManifest<'a> {
     pub features: Vec<FeatureDescriptor<'a>>,
 }
 
-#[derive(Encode, Decode, PartialEq)]
+impl<'a> ModManifest<'a> {
+    /// Get the list of all systems in the manifest in a deterministic order
+    /// (based on the order of the features and schedules)
+    pub fn systems(&self) -> Vec<&System<'a>> {
+        let mut systems = Vec::new();
+        for feature in &self.features {
+            for schedule in &feature.schedules {
+                for system in &schedule.schedule.systems {
+                    if !systems.iter().any(|s: &&System<'_>| s.id == system.id) {
+                        systems.push(system);
+                    }
+                }
+            }
+        }
+        systems
+    }
+}
+
+#[derive(Encode, Decode, PartialEq, Clone)]
 pub struct FileHash([u8; 16]);
 
 impl std::fmt::Debug for FileHash {

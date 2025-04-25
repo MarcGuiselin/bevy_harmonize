@@ -1,0 +1,48 @@
+#![no_std]
+#![feature(const_type_name)]
+
+use core::any::type_name;
+
+pub(crate) const fn __resolve_component_id<T>() -> usize {
+    let name = type_name::<T>();
+    match components(name.as_bytes()) {
+        Some(component) => component.id,
+        None => usize::MAX,
+    }
+}
+
+pub(crate) const fn __resolve_address<T>() -> *mut T {
+    let name = type_name::<T>();
+    let alignment = align_of::<T>();
+    const_panic::concat_assert!(
+        alignment <= 128,
+        "bevy_harmonize can only ensure alignments up to 128. Alignment for ",
+        name,
+        " is ",
+        alignment
+    );
+
+    let ptr = match components(name.as_bytes()) {
+        Some(component) => component.address,
+        // Dangling, non-null pointer
+        None => alignment,
+    };
+    ptr as _
+}
+
+#[allow(dead_code)]
+struct Component {
+    id: usize,
+    address: usize,
+}
+
+#[allow(dead_code)]
+const fn components(name: &'static [u8]) -> Option<Component> {
+    match name {
+        //  b"my_cube_9c39e062::CountFrames" => Some(...),
+        {{#components}}
+        b"{{.name}}" => Some(Component{ id: {{.id}}, address: {{.address}} }),
+        {{/components}}
+        _ => None,
+    }
+}

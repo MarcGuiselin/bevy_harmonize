@@ -1,25 +1,9 @@
 use api::prelude::*;
 
-mod __codegen {
-    pub(crate) const fn __resolve_component_id<T>() -> usize
-    where
-        T: Sized,
-    {
-        1234500
-    }
-
-    pub(crate) const fn __resolve_address<T>() -> *mut T
-    where
-        T: Sized,
-    {
-        let alignment = align_of::<T>();
-        if alignment > 128 {
-            panic!("bevy harmonize can only ensure alignments up to 128");
-        }
-
-        1234500 as _
-    }
-}
+pub const SCHEMA: Schema = Mod::new("My cube")
+    .add_resource::<CountFrames>()
+    .add_systems(Update, update_frame_count)
+    .into_schema();
 
 #[derive(Reflect, Default, Addressable)]
 pub struct CountFrames(pub u32);

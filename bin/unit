@@ -5,4 +5,5 @@
 clean-codegen
 cargo test -p const_vec
 cargo test -p bevy_harmonize_api
+cargo test -p bevy_harmonize_build
 cargo test -p bevy_harmonize_manifest

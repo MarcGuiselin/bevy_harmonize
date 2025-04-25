@@ -1,0 +1,18 @@
+# This Cargo.toml file is auto-generated to compile mod {{file_name}}
+#
+# Modloader Version: {{modloader_version}}
+# Dev Mode: {{dev_mode}}
+# Build mode: Local
+
+[package]
+name = "{{name}}_export_manifest"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+path = "lib.rs"
+
+[dependencies]
+manifest_api = { package = "bevy_harmonize_manifest", path = "../../../crates/manifest" }
+source = { package = "{{name}}_source", path = "../{{name}}_source" }

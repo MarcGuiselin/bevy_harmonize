@@ -8,6 +8,7 @@ edition = "2021"
 common = { package = "bevy_harmonize_common", path = "crates/common" }
 bevy_harmonize_build = { path = "crates/build" }
 
+anyhow.workspace = true
 async-channel.workspace = true
 async-fs.workspace = true
 bevy_app.workspace = true
@@ -19,7 +20,6 @@ bitcode.workspace = true
 futures-lite.workspace = true
 notify.workspace = true
 petgraph.workspace = true
-rancor.workspace = true
 sha2.workspace = true
 wasmer.workspace = true
 
@@ -34,6 +34,7 @@ members = ["crates/*", "codegen/crates/*"]
 bitcode = { version = "0", features = [
     "derive",
 ], git = "https://github.com/MarcGuiselin/bitcode.git", branch = "bevy-integration" }
+anyhow = "1.0"
 async-channel = "2.3"
 async-process = "2.2"
 async-std = "1.12"
@@ -58,10 +59,10 @@ futures-concurrency = "7.6"
 futures-lite = "2.5"
 notify = "7"
 petgraph = "0.6"
-rancor = "0.1"
 serde = "1.0"
 sha2 = "0.10"
 wasmer = "5.0"
+wasmtime = "32.0"
 
 # Enable small optimizations for local code
 [profile.dev]

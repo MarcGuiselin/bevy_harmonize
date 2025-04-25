@@ -26,7 +26,7 @@ impl Plugin for DevtoolsPlugin {
 
 #[derive(Resource)]
 struct BuildTask {
-    compute: Option<Task<Result<Vec<PathBuf>, rancor::Error>>>,
+    compute: Option<Task<anyhow::Result<Vec<PathBuf>>>>,
 
     /// Indicates that there were one or more file changes
     trigger_build: Receiver<()>,
@@ -78,7 +78,7 @@ fn update_build(mut task: ResMut<BuildTask>, mut mods: ResMut<Mods>) {
                     mods.load_from_path(&file);
                 }
             }
-            Some(Err(err)) => error!("Error when building mods {}", err),
+            Some(Err(err)) => error!("Error when building mods {:?}", err),
             None => {}
         }
         task.compute = None;
@@ -86,13 +86,13 @@ fn update_build(mut task: ResMut<BuildTask>, mut mods: ResMut<Mods>) {
 
     // Initialize a new task when the previous one is finished
     if task.trigger_build.try_recv().is_ok() && task.compute.is_none() {
-        println!("trigger_build!");
+        info!("trigger_build!");
 
         let debug = cfg!(debug_assertions);
         let mods_directory = Path::new(MOD_DIR).to_path_buf();
         let cargo_directory = Path::new(CARGO_DIR).to_path_buf();
 
-        let future = build::<rancor::Error>(!debug, mods_directory, cargo_directory);
+        let future = build(!debug, mods_directory, cargo_directory);
         task.compute
             .replace(AsyncComputeTaskPool::get().spawn(future));
     }

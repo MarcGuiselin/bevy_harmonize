@@ -1,0 +1,14 @@
+use api::ecs::system::{IntoSystem, System};
+
+#[no_mangle]
+pub unsafe extern "C" fn run(system_id: u32) {
+    match system_id {
+        {{#systems}}
+        {{.id}} => {
+            let mut sys = IntoSystem::into_system({{.name}});
+            sys.run(());
+        },
+        {{/systems}}
+        _ => panic!("Unknown system ID: {}", system_id),
+    }
+}
