@@ -3827,23 +3827,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "my_cube_9c39e062"
-version = "0.0.0"
-dependencies = [
- "bevy_harmonize_api",
- "bevy_reflect",
- "bitcode",
-]
-
-[[package]]
-name = "my_cube_test"
-version = "0.0.0"
-dependencies = [
- "bevy_harmonize_api",
- "my_cube_9c39e062",
-]
-
-[[package]]
 name = "naga"
 version = "23.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
