@@ -10,7 +10,7 @@ use crate::ecs::system::Schedule;
 #[derive(Debug, Clone, Copy)]
 pub struct Schema {
     pub(crate) name: Option<&'static str>,
-    pub(crate) types: ConstVec<fn() -> &'static TypeInfo, 1024>,
+    pub(crate) types: ConstVec<InnerType, 1024>,
     pub(crate) resources: ConstVec<(fn() -> &'static TypeInfo, fn() -> Vec<u8>), 128>,
     pub(crate) schedules: ConstVec<(fn() -> &'static TypeInfo, Schedule), 128>,
 }
@@ -53,14 +53,37 @@ impl Schema {
 
 pub struct Types<'a> {
     next: usize,
-    getters: &'a [fn() -> &'static TypeInfo],
+    getters: &'a [InnerType],
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct InnerType {
+    pub(crate) getter: fn() -> &'static TypeInfo,
+    pub(crate) size: usize,
+    pub(crate) align: usize,
+}
+
+impl Into<Type> for &InnerType {
+    fn into(self) -> Type {
+        Type {
+            info: (self.getter)(),
+            size: self.size,
+            align: self.align,
+        }
+    }
+}
+
+pub struct Type {
+    pub info: &'static TypeInfo,
+    pub size: usize,
+    pub align: usize,
 }
 
 impl<'a> Iterator for Types<'a> {
-    type Item = &'static TypeInfo;
+    type Item = Type;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let current = self.getters.get(self.next).map(|getter| getter());
+        let current = self.getters.get(self.next).map(|inner| inner.into());
         self.next += 1;
         current
     }

@@ -1,5 +1,6 @@
 use std::{any::TypeId, collections::HashMap};
 
+use api::schema::Type as SchemaType;
 use bevy_reflect::{GenericInfo, Generics, Type, TypeInfo, VariantInfo};
 use common::{FieldSignature, GenericSignature, StableId, TypeSignature, VariantSignature};
 
@@ -10,9 +11,23 @@ impl TypeSignatures {
         Self(HashMap::new())
     }
 
-    pub fn register_type(&mut self, type_info: &TypeInfo) {
+    pub fn register_type(&mut self, ty: SchemaType) {
+        self.register_raw(ty.info, Some(ty.size), Some(ty.align));
+    }
+
+    pub fn register_raw(
+        &mut self,
+        type_info: &TypeInfo,
+        size: Option<usize>,
+        align: Option<usize>,
+    ) {
         let type_id = type_info.type_id();
-        if !self.0.contains_key(&type_id) {
+        if self
+            .0
+            .get(&type_id)
+            .map(|signature| signature.size() != size || signature.align() != align)
+            .unwrap_or(true)
+        {
             let signature = match type_info {
                 TypeInfo::Struct(info) => {
                     let field_count = info.field_len();
@@ -25,13 +40,15 @@ impl TypeSignatures {
                         });
 
                         // Recursively register fields
-                        if let Some(type_id) = field.type_info() {
-                            self.register_type(type_id);
+                        if let Some(type_info) = field.type_info() {
+                            self.register_raw(type_info, None, None);
                         }
                     }
 
                     TypeSignature::Struct {
                         ty: ty(info.ty()),
+                        size,
+                        align,
                         generics: generics(info.generics()),
                         fields,
                     }
@@ -44,13 +61,15 @@ impl TypeSignatures {
                         fields.push(ty(field.ty()));
 
                         // Recursively register fields
-                        if let Some(type_id) = field.type_info() {
-                            self.register_type(type_id);
+                        if let Some(type_info) = field.type_info() {
+                            self.register_raw(type_info, None, None);
                         }
                     }
 
                     TypeSignature::TupleStruct {
                         ty: ty(info.ty()),
+                        align,
+                        size,
                         generics: generics(info.generics()),
                         fields,
                     }
@@ -63,39 +82,57 @@ impl TypeSignatures {
                         fields.push(ty(field.ty()));
 
                         // Recursively register fields
-                        if let Some(type_id) = field.type_info() {
-                            self.register_type(type_id);
+                        if let Some(type_info) = field.type_info() {
+                            self.register_raw(type_info, None, None);
                         }
                     }
 
                     TypeSignature::Tuple {
                         ty: ty(info.ty()),
+                        size,
+                        align,
                         generics: generics(info.generics()),
                         fields,
                     }
                 }
-                TypeInfo::List(info) => TypeSignature::List {
-                    ty: ty(info.ty()),
-                    generics: generics(info.generics()),
-                    item_ty: ty(&info.item_ty()),
-                },
-                TypeInfo::Array(info) => TypeSignature::Array {
-                    ty: ty(info.ty()),
-                    generics: generics(info.generics()),
-                    item_ty: ty(&info.item_ty()),
-                    capacity: info.capacity(),
-                },
-                TypeInfo::Map(info) => TypeSignature::Map {
-                    ty: ty(info.ty()),
-                    generics: generics(info.generics()),
-                    key_ty: ty(&info.key_ty()),
-                    value_ty: ty(&info.value_ty()),
-                },
-                TypeInfo::Set(info) => TypeSignature::Set {
-                    ty: ty(info.ty()),
-                    generics: generics(info.generics()),
-                    value_ty: ty(&info.value_ty()),
-                },
+                TypeInfo::List(info) => {
+                    assert!(size.is_none());
+                    assert!(align.is_none());
+                    TypeSignature::List {
+                        ty: ty(info.ty()),
+                        generics: generics(info.generics()),
+                        item_ty: ty(&info.item_ty()),
+                    }
+                }
+                TypeInfo::Array(info) => {
+                    assert!(size.is_none());
+                    assert!(align.is_none());
+                    TypeSignature::Array {
+                        ty: ty(info.ty()),
+                        generics: generics(info.generics()),
+                        item_ty: ty(&info.item_ty()),
+                        capacity: info.capacity(),
+                    }
+                }
+                TypeInfo::Map(info) => {
+                    assert!(size.is_none());
+                    assert!(align.is_none());
+                    TypeSignature::Map {
+                        ty: ty(info.ty()),
+                        generics: generics(info.generics()),
+                        key_ty: ty(&info.key_ty()),
+                        value_ty: ty(&info.value_ty()),
+                    }
+                }
+                TypeInfo::Set(info) => {
+                    assert!(size.is_none());
+                    assert!(align.is_none());
+                    TypeSignature::Set {
+                        ty: ty(info.ty()),
+                        generics: generics(info.generics()),
+                        value_ty: ty(&info.value_ty()),
+                    }
+                }
                 TypeInfo::Enum(info) => {
                     let variant_count = info.variant_len();
                     let mut variants = Vec::with_capacity(variant_count);
@@ -113,8 +150,8 @@ impl TypeSignatures {
                                     });
 
                                     // Recursively register fields
-                                    if let Some(type_id) = field.type_info() {
-                                        self.register_type(type_id);
+                                    if let Some(type_info) = field.type_info() {
+                                        self.register_raw(type_info, None, None);
                                     }
                                 }
 
@@ -131,8 +168,8 @@ impl TypeSignatures {
                                     fields.push(ty(field.ty()));
 
                                     // Recursively register fields
-                                    if let Some(type_id) = field.type_info() {
-                                        self.register_type(type_id);
+                                    if let Some(type_info) = field.type_info() {
+                                        self.register_raw(type_info, None, None);
                                     }
                                 }
 
@@ -147,12 +184,16 @@ impl TypeSignatures {
 
                     TypeSignature::Enum {
                         ty: ty(info.ty()),
+                        size,
+                        align,
                         generics: generics(info.generics()),
                         variants,
                     }
                 }
                 TypeInfo::Opaque(info) => TypeSignature::Opaque {
                     ty: ty(info.ty()),
+                    size,
+                    align,
                     generics: generics(info.generics()),
                 },
             };

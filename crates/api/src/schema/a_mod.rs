@@ -2,7 +2,7 @@ use bevy_reflect::{TypeInfo, Typed};
 
 use crate::ecs::{system::IntoSchedule, Reflected, Resource};
 
-use super::Schema;
+use super::{InnerType, Schema};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Mod {
@@ -24,7 +24,11 @@ impl Mod {
     where
         T: Typed,
     {
-        self.schema.types.push(T::type_info);
+        self.schema.types.push(InnerType {
+            getter: T::type_info,
+            size: size_of::<T>(),
+            align: align_of::<T>(),
+        });
         self
     }
 
@@ -32,6 +36,7 @@ impl Mod {
     where
         R: Resource,
     {
+        self.register_type::<R>();
         self.schema
             .resources
             .push((R::type_info, R::default_value_as_buffer));
@@ -92,8 +97,8 @@ mod tests {
             types, resources, ..
         } = SCHEMA;
 
-        // No type should be added. The resource will be registered when converting the schema to a manifest
-        assert_eq!(types.len(), 0);
+        // add_resource should call `register_type` internally
+        assert_eq!(types.len(), 1);
 
         assert_eq!(resources.len(), 1);
         let (stable_id, default_value) = resources[0];
@@ -112,7 +117,7 @@ mod tests {
 
         let Schema { types, .. } = SCHEMA;
         assert_eq!(types.len(), 1);
-        let test_type = types[0]();
+        let test_type = (types[0].getter)();
         assert_eq!(test_type.type_id(), std::any::TypeId::of::<TestType>());
     }
 

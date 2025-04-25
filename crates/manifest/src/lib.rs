@@ -10,15 +10,13 @@ use type_signatures::TypeSignatures;
 
 pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
     let mut types = TypeSignatures::new();
-    for type_info in schema.types() {
-        types.register_type(type_info);
+    for ty in schema.types() {
+        types.register_type(ty);
     }
 
     // There can only be one default per resource
     let mut resources = HashMap::new();
     for (type_info, value) in schema.resources() {
-        types.register_type(type_info);
-
         let id = StableId::from_type_info(type_info);
         resources.insert(type_info.type_id(), (id, value));
     }
@@ -27,8 +25,6 @@ pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
     // Combine schedules with the same label together
     let mut schedules: HashMap<TypeId, ScheduleDescriptor<'_>> = HashMap::new();
     for (type_info, schedule) in schema.schedules() {
-        types.register_type(type_info);
-
         let id = StableId::from_type_info(type_info);
         let default = ScheduleDescriptor {
             id,
@@ -115,6 +111,7 @@ mod tests {
             .add_resource::<MyStruct>()
             .add_systems(Start, system1)
             .add_systems(Start, system2)
+            .register_type::<u32>()
             .into_schema();
 
         let ModManifest {
@@ -123,10 +120,12 @@ mod tests {
             wasm_hash: _wasm_hash,
         } = schema_to_manifest(SCHEMA);
 
-        assert_eq!(types.len(), 5);
+        assert_eq!(types.len(), 4);
         // In indeterminate order
         assert!(types.contains(&TypeSignature::Struct {
             ty: StableId::from_typed::<MyStruct>(),
+            size: Some(std::mem::size_of::<MyStruct>()),
+            align: Some(std::mem::align_of::<MyStruct>()),
             generics: Vec::new(),
             fields: vec![
                 FieldSignature {
@@ -141,6 +140,8 @@ mod tests {
         }));
         assert!(types.contains(&TypeSignature::Enum {
             ty: StableId::from_typed::<MyEnum>(),
+            size: None,
+            align: None,
             generics: Vec::new(),
             variants: vec![
                 VariantSignature::Unit { name: "Left" },
@@ -157,17 +158,18 @@ mod tests {
                 }
             ]
         }));
-        assert!(types.contains(&TypeSignature::Struct {
-            ty: StableId::from_typed::<Start>(),
-            generics: Vec::new(),
-            fields: Vec::new(),
-        }));
         assert!(types.contains(&TypeSignature::Opaque {
             ty: StableId::from_typed::<u32>(),
+            // First it's registered as a dependency of MyStruct without size/alignment
+            // But then it's registered again with register_type with size/alignment
+            size: Some(std::mem::size_of::<u32>()),
+            align: Some(std::mem::align_of::<u32>()),
             generics: Vec::new(),
         }));
         assert!(types.contains(&TypeSignature::Opaque {
             ty: StableId::from_typed::<String>(),
+            size: None,
+            align: None,
             generics: Vec::new()
         }));
 
