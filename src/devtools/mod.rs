@@ -78,7 +78,7 @@ fn update_build(mut task: ResMut<BuildTask>, mut mods: ResMut<Mods>) {
                     mods.load_from_path(&file);
                 }
             }
-            Some(Err(err)) => error!("Error when building mods {:?}", err),
+            Some(Err(err)) => error!("Error when building mods\n{:?}", err),
             None => {}
         }
         task.compute = None;

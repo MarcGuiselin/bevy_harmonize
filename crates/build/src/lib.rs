@@ -1,15 +1,8 @@
 #![allow(non_local_definitions)] // TODO: Fix downstream in bart
 
 use anyhow::*;
-use async_process::Stdio;
-use async_std::{
-    io::{prelude::BufReadExt, BufReader, Read},
-    stream::StreamExt,
-    task::spawn,
-};
-use bevy_utils::tracing::{error, info, warn};
+use bevy_utils::tracing::{info, warn};
 use common::{FileHash, ModManifest};
-use futures_concurrency::prelude::*;
 use postprocess::TypeAddress;
 use sha2::{Digest, Sha256};
 use std::{path::PathBuf, time::Instant};
@@ -36,7 +29,7 @@ pub async fn build(
         return Ok(Vec::new());
     }
 
-    let dir = Directories::create(&cargo_directory, release).await?;
+    let dir = Directories::create(cargo_directory, release).await?;
 
     // Prepare codegen
     fs_utils::empty_dir_conditional(&dir.codegen, |path| {
@@ -63,7 +56,7 @@ pub async fn build(
     )
     .await
     {
-        warn!("Initial cargo build ran into an error: {:?}", e);
+        warn!("Initial cargo build ran into an error:\n{:?}", e);
         info!("Retrying building manifests only");
 
         // Build only the mod manifests
@@ -151,6 +144,7 @@ pub async fn build(
 }
 
 struct Directories {
+    cargo_directory: PathBuf,
     dev_mode: &'static str,
     codegen: PathBuf,
     dest: PathBuf,
@@ -163,7 +157,7 @@ impl Directories {
     const CODEGEN_DIR: &str = "codegen/crates";
     const WASM_TARGET: &str = "wasm32-unknown-unknown";
 
-    async fn create(cargo_directory: &PathBuf, release: bool) -> Result<Self> {
+    async fn create(cargo_directory: PathBuf, release: bool) -> Result<Self> {
         let target = cargo_directory.join(Self::TARGET_DIR);
         let build = target.join(Self::BUILD_DIR);
         let codegen = cargo_directory.join(Self::CODEGEN_DIR);
@@ -175,6 +169,7 @@ impl Directories {
         fs_utils::create_dir_all(&dest).await?;
 
         Ok(Self {
+            cargo_directory,
             codegen,
             dev_mode,
             dest,
@@ -446,52 +441,19 @@ impl ModSource {
 }
 
 async fn cargo_build(dir: &Directories, packages: Vec<String>, release: bool) -> Result<()> {
-    let mut command = CargoCommand::new("build");
+    let mut command = CargoCommand::new("build")?;
     command
         .packages(packages.into_iter())
-        .inner
-        .current_dir(dir.wasm_dest.clone())
-        .args(&["--target", "wasm32-unknown-unknown"])
-        .arg("build-std=panic_abort,std")
-        .env("RUSTFLAGS", "-C link-arg=--import-memory")
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped());
+        .current_dir(dir.cargo_directory.clone())
+        .target("wasm32-unknown-unknown")
+        //.arg("build-std=panic_abort,std")
+        .env("RUSTFLAGS", "-C link-arg=--import-memory");
 
     if release {
-        command.inner.arg("--release");
+        command.arg("--release");
     }
 
-    let mut child = command
-        .inner
-        .spawn()
-        .with_context(|| format!("Could not start cargo"))?;
-
-    // All human readable output for cargo is sent to stderr
-    let stderr = child.stderr.take().unwrap();
-    let stderr_handle = spawn(output_cargo_stderr(stderr));
-
-    let (status, _) = (child.status(), stderr_handle).join().await;
-    let status = status?;
-    if !status.success() {
-        bail!("Cargo build failed with status: {}", status);
-    }
+    command.spawn().await?;
 
     Ok(())
-}
-
-async fn output_cargo_stderr(output: impl Read + Unpin) {
-    let reader = BufReader::new(output);
-    let mut lines = reader.lines();
-
-    let mut err = false;
-    while let Some(line) = lines.next().await {
-        let line = line.expect("Failed to read line");
-        err |= line.contains("error");
-        if err {
-            error!("{}", line);
-        } else {
-            info!("{}", line);
-        }
-    }
 }
