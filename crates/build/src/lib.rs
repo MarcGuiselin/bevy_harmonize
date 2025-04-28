@@ -1,7 +1,7 @@
 #![allow(non_local_definitions)] // TODO: Fix downstream in bart
 
 use anyhow::*;
-use common::{FileHash, ModManifest};
+use common::{FileHash, ModManifest, RawWasmVec};
 use postprocess::TypeAddress;
 use sha2::{Digest, Sha256};
 use std::{path::PathBuf, time::Instant};
@@ -397,12 +397,11 @@ impl ModSource {
         let linker = Linker::new(&engine);
         let instance = linker.instantiate(&mut store, &module)?;
 
-        let run = instance.get_typed_func::<(), (u32, u32)>(&mut store, "run")?;
-        let (ptr, size) = run.call(&mut store, ())?;
+        let run = instance.get_typed_func::<(), u64>(&mut store, "run")?;
+        let vec = RawWasmVec::from(run.call(&mut store, ())?);
 
         let memory = instance.get_memory(&mut store, "memory").unwrap();
-        let manifest_bytes =
-            memory.data(&store)[ptr as usize..ptr as usize + size as usize].to_vec();
+        let manifest_bytes = memory.data(&store)[vec.into_range()].to_vec();
 
         if manifest_bytes.is_empty() {
             bail!("Manifest bytes are empty");

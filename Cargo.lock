@@ -4228,7 +4228,9 @@ dependencies = [
 name = "my_cube_9c39e062_export_manifest"
 version = "0.0.0"
 dependencies = [
+ "bevy_harmonize_common",
  "bevy_harmonize_manifest",
+ "bitcode",
  "my_cube_9c39e062_source",
 ]
 

@@ -3,7 +3,7 @@
 
 use core::any::type_name;
 
-pub(crate) const fn __resolve_component_id<T>() -> usize {
+pub const fn __resolve_component_id<T>() -> usize {
     let name = type_name::<T>();
     match components(name.as_bytes()) {
         Some(component) => component.id,
@@ -11,7 +11,7 @@ pub(crate) const fn __resolve_component_id<T>() -> usize {
     }
 }
 
-pub(crate) const fn __resolve_address<T>() -> *mut T {
+pub const fn __resolve_address<T>() -> *mut T {
     let name = type_name::<T>();
     let alignment = align_of::<T>();
     const_panic::concat_assert!(

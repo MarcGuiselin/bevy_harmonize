@@ -1,3 +1,5 @@
+#![feature(const_trait_impl)]
+
 use api::prelude::*;
 
 pub const SCHEMA: Schema = Mod::new("My cube")
