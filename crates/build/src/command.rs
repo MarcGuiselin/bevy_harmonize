@@ -6,11 +6,10 @@ use async_std::{
     stream::StreamExt,
     task::spawn,
 };
-use bevy_utils::tracing::warn;
-use bevy_utils::tracing::{error, info};
 use futures_concurrency::prelude::*;
 use std::path::Path;
 use std::{ffi::OsStr, str};
+use tracing::{error, info, warn};
 
 pub struct CargoCommand {
     inner: Command,

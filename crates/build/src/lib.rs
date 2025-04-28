@@ -1,11 +1,11 @@
 #![allow(non_local_definitions)] // TODO: Fix downstream in bart
 
 use anyhow::*;
-use bevy_utils::tracing::{info, warn};
 use common::{FileHash, ModManifest};
 use postprocess::TypeAddress;
 use sha2::{Digest, Sha256};
 use std::{path::PathBuf, time::Instant};
+use tracing::{info, warn};
 use wasmtime::*;
 
 mod command;

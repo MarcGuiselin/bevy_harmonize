@@ -1,8 +1,8 @@
 use crate::ecs::Reflected;
 
 use super::IntoSystem;
-use bevy_utils_proc_macros::all_tuples;
 use common::{StableId, System, SystemId};
+use variadics_please::all_tuples;
 
 /// Similar in role to bevy's IntoSystemConfigs trait
 pub trait IntoSystemSet<Marker>

@@ -6,8 +6,8 @@ use bevy_ecs::system::ResMut;
 use bevy_ecs_macros::Resource;
 use bevy_harmonize_build::build;
 use bevy_tasks::{block_on, poll_once, AsyncComputeTaskPool, Task};
-use bevy_utils::tracing::*;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+use tracing::{error, info};
 
 use crate::mods::Mods;
 

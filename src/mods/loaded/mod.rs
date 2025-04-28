@@ -3,8 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use bevy_utils::tracing::info;
 use sha2::{Digest, Sha256};
+use tracing::info;
 
 mod feature;
 pub use feature::LoadedFeature;

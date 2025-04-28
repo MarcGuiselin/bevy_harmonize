@@ -1,4 +1,4 @@
-use bevy_utils::HashMap;
+use bevy_platform::collections::hash_map::HashMap;
 
 use super::{schedule::LoadedSchedules, LoadingError};
 

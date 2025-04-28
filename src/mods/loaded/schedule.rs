@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-use bevy_utils::{HashMap, HashSet};
+use bevy_platform::collections::{HashMap, HashSet};
 use common::{OwnedStableId, Start, Update};
 use petgraph::{algo::TarjanScc, prelude::*};
 
@@ -18,7 +18,7 @@ impl LoadedSchedules {
     pub fn try_from_schedule_descriptors<'a>(
         descriptors: &Vec<common::ScheduleDescriptor<'a>>,
     ) -> Result<Self, LoadingError> {
-        let mut schedules = HashMap::default();
+        let mut schedules: HashMap<OwnedStableId, Vec<&common::Schedule<'_>>> = HashMap::default();
 
         // Allow only the default schedules for now
         schedules.insert(OwnedStableId::from_typed::<Start>(), Vec::new());
@@ -34,7 +34,7 @@ impl LoadedSchedules {
         }
 
         let mut inner = HashMap::default();
-        for (id, schedules) in schedules.into_iter() {
+        for (id, schedules) in schedules {
             if !schedules.is_empty() {
                 let loaded = LoadedSchedule::try_from_schedules(&schedules[..])
                     .map_err(LoadingError::SchedulingError)?;

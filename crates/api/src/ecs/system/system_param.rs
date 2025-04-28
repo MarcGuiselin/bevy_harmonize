@@ -1,4 +1,4 @@
-use bevy_utils_proc_macros::all_tuples;
+use variadics_please::all_tuples;
 
 pub type Params = Vec<common::Param<'static>>;
 

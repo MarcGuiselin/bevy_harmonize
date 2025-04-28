@@ -1,8 +1,8 @@
 use std::any::type_name;
 
 use super::{system_param::SystemParamItem, In, IntoSystem, System, SystemParam};
-use bevy_utils_proc_macros::all_tuples;
 use common::SystemId;
+use variadics_please::all_tuples;
 
 /// The [`System`] counter part of an ordinary function.
 ///

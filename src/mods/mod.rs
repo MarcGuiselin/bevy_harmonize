@@ -4,7 +4,7 @@ use bevy_app::{App, Plugin, Update};
 use bevy_ecs::system::ResMut;
 use bevy_ecs_macros::Resource;
 use bevy_tasks::{block_on, poll_once, AsyncComputeTaskPool, Task};
-use bevy_utils::tracing::{error, info, warn};
+use tracing::{error, info, warn};
 
 mod schedule;
 pub(crate) use schedule::{Cycle, SchedulingError};

@@ -19,5 +19,6 @@ dunce.workspace = true
 futures-concurrency.workspace = true
 futures-lite.workspace = true
 sha2.workspace = true
+tracing.workspace = true
 wasmtime.workspace = true
 which.workspace = true
