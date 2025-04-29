@@ -77,11 +77,16 @@ fn update_build(mut task: ResMut<BuildTask>, mut mods: ResMut<Mods>) {
                 for file in files {
                     mods.load_from_path(&file);
                 }
+
+                task.compute = None;
             }
-            Some(Err(err)) => error!("Error when building mods\n{:?}", err),
+            Some(Err(err)) => {
+                error!("Error when building mods\n{:?}", err);
+
+                task.compute = None;
+            }
             None => {}
         }
-        task.compute = None;
     }
 
     // Initialize a new task when the previous one is finished
