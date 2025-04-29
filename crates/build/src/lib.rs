@@ -290,7 +290,7 @@ impl ModSource {
             imports_path.join("lib.rs"),
             templates::ImportsLib {
                 // Empty since we don't know the contents of the manifest yet
-                components: Vec::new(),
+                components: &[],
             },
         )
         .await?;
@@ -347,19 +347,20 @@ impl ModSource {
             .map(|(id, type_address)| {
                 let sid = type_address.ty.stable_id();
                 templates::ImportsComponent {
-                    name: format!("{}::{}", sid.crate_name, sid.name),
+                    crate_name: sid.crate_name,
+                    name: sid.name,
                     id: id as u32,
                     address: type_address.address,
                 }
             })
             .collect();
 
-        warn!("{:?}", components);
-
         let imports_path = dir.codegen.join(format!("{}{}", name, Self::IMPORTS));
         fs_utils::write_template(
             imports_path.join("lib.rs"),
-            templates::ImportsLib { components },
+            templates::ImportsLib {
+                components: &components[..],
+            },
         )
         .await?;
 

@@ -9,13 +9,14 @@ pub struct ImportsCargo<'a> {
 
 #[derive(bart_derive::BartDisplay)]
 #[template = "templates/import/lib.rs.template"]
-pub struct ImportsLib {
-    pub components: Vec<ImportsComponent>,
+pub struct ImportsLib<'a> {
+    pub components: &'a [ImportsComponent<'a>],
 }
 
 #[derive(Debug)]
-pub struct ImportsComponent {
-    pub name: String,
+pub struct ImportsComponent<'a> {
+    pub crate_name: &'a str,
+    pub name: &'a str,
     pub id: u32,
     pub address: u32,
 }
