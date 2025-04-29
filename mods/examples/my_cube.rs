@@ -11,5 +11,6 @@ pub const SCHEMA: Schema = Mod::new("My cube")
 pub struct CountFrames(pub u32);
 
 pub fn update_frame_count(mut resource: ResMut<CountFrames>) {
-    resource.0 += 123456;
+    resource.0 += 1;
+    info!("Frame count: {}", resource.0);
 }

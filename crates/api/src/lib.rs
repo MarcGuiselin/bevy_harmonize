@@ -6,6 +6,7 @@ pub mod schema;
 pub mod prelude {
     pub use bevy_reflect::prelude::*;
     pub use bevy_reflect_derive::*;
+    pub use tracing::{debug, error, info, trace, warn};
 
     pub use crate::ecs::{
         system::{Commands, IntoSchedule, IntoSystem, IntoSystemSet, ResMut},
