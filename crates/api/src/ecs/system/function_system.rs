@@ -100,20 +100,34 @@ where
     }
 
     unsafe fn into_system_with_state(self, state: Self::State) -> Self::System {
+        let name = self.get_name();
         FunctionSystem {
             func: self,
             state,
-            name: std::any::type_name::<F>(),
+            name,
         }
     }
 
     fn into_metadata() -> common::System<'static> {
         common::System {
             id: SystemId::of::<Self::System>(),
-            name: type_name::<Self::System>(),
+            name: extract_system_name(type_name::<Self::System>()),
             params: F::Param::get_metadata(),
         }
     }
+
+    fn get_name(&self) -> &'static str {
+        extract_system_name(type_name::<Self::System>())
+    }
+}
+
+/// Takes a full quantified type name and extracts the system name from it.
+fn extract_system_name(original: &'static str) -> &'static str {
+    let start_pos = original
+        .rfind(' ')
+        .map(|start_pos| start_pos + 1usize)
+        .unwrap_or(0usize);
+    &original[start_pos..original.len() - 1]
 }
 
 impl<Marker, F> System for FunctionSystem<Marker, F>
@@ -162,40 +176,48 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::any::TypeId;
 
     #[test]
-    fn into_system_type_id_consistency() {
-        fn test<T, Marker>(function: T)
+    fn type_id_consistency() {
+        fn function() {}
+        fn another_function() {}
+
+        let system_id = function.get_system_id();
+
+        assert_eq!(
+            system_id,
+            function.get_system_id(),
+            "System::type_id should be deterministic"
+        );
+
+        assert_eq!(
+            system_id,
+            SystemId::from_type(get_inner_id(function)),
+            "System::type_id should be consistent with TypeId::of::<T::System>()"
+        );
+        fn get_inner_id<T, Marker>(_: T) -> TypeId
         where
             T: IntoSystem<(), (), Marker> + Copy,
         {
-            fn reference_system() {}
-
-            use core::any::TypeId;
-
-            let system = IntoSystem::into_system(function);
-
-            assert_eq!(
-                system.type_id(),
-                function.get_type_id(),
-                "System::type_id should be consistent with IntoSystem::system_type_id"
-            );
-
-            assert_eq!(
-                system.type_id(),
-                TypeId::of::<T::System>(),
-                "System::type_id should be consistent with TypeId::of::<T::System>()"
-            );
-
-            assert_ne!(
-                system.type_id(),
-                IntoSystem::into_system(reference_system).type_id(),
-                "Different systems should have different TypeIds"
-            );
+            TypeId::of::<T::System>()
         }
 
+        assert_ne!(
+            function.get_system_id(),
+            another_function.get_system_id(),
+            "Different systems should have different TypeIds"
+        );
+    }
+
+    #[test]
+    fn type_name_consistency() {
         fn function_system() {}
 
-        test(function_system);
+        assert_eq!(
+            IntoSystem::get_name(&function_system),
+            "bevy_harmonize_api::ecs::system::function_system::tests::type_name_consistency::function_system",
+            "System::get_name should be empty for function systems"
+        );
     }
 }

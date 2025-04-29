@@ -1,5 +1,3 @@
-use std::any::TypeId;
-
 use const_vec::ConstVec;
 
 #[diagnostic::on_unimplemented(message = "`{Self}` is not a system", label = "invalid system")]
@@ -16,12 +14,6 @@ where
 
     /// Returns the system's name.
     fn name(&self) -> &'static str;
-
-    /// Returns the [`TypeId`] of the underlying system type.
-    #[inline]
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<Self>()
-    }
 
     /// Runs the system with the given input
     fn run(&mut self, input: Self::In) -> Self::Out;

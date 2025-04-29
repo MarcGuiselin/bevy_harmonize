@@ -61,9 +61,7 @@ pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
 #[cfg(test)]
 mod tests {
     use api::prelude::*;
-    use common::{
-        FieldSignature, Param, Schedule, Start, System, SystemId, TypeSignature, VariantSignature,
-    };
+    use common::{FieldSignature, Param, Schedule, Start, System, TypeSignature, VariantSignature};
 
     use super::*;
 
@@ -72,8 +70,8 @@ mod tests {
         F: IntoSystem<(), (), Marker>,
     {
         System {
-            id: SystemId::from_type(IntoSystem::get_type_id(&system)),
-            name: std::any::type_name::<F::System>(),
+            id: system.get_system_id(),
+            name: system.get_name(),
             params,
         }
     }

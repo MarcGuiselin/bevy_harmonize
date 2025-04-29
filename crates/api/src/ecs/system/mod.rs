@@ -5,7 +5,7 @@ mod system;
 mod system_param;
 mod system_set;
 
-use std::any::TypeId;
+use core::any::{type_name, TypeId};
 
 pub use function_system::FunctionSystem;
 pub use params::*;
@@ -41,13 +41,34 @@ where
 
     /// Get the [`TypeId`] of the [`System`] produced after calling [`into_system`](`IntoSystem::into_system`).
     #[inline]
-    fn type_id() -> TypeId {
-        TypeId::of::<Self::System>()
+    fn get_system_id(&self) -> common::SystemId {
+        common::SystemId::from_type(TypeId::of::<Self::System>())
     }
 
     #[inline]
-    fn get_type_id(&self) -> TypeId {
-        Self::type_id()
+    fn get_name(&self) -> &'static str {
+        let full_name = type_name::<Self::System>();
+        let name = extract_system_name(full_name);
+        assert!(
+            name.len() > 0,
+            "System name is being parsed incorrectly\n   Input: {full_name}"
+        );
+        name
+    }
+}
+
+/// Takes a full quantified type name and extracts the system name from it.
+fn extract_system_name(original: &'static str) -> &'static str {
+    assert!(original.len() >= 4, "String too small to be a system name");
+    // Simplify deeply nested types (always end in >)
+    if original.chars().last() == Some('>') {
+        let start_pos = original
+            .rfind(' ')
+            .map(|start_pos| start_pos + 1usize)
+            .unwrap_or(0usize);
+        &original[start_pos..original.len() - 1]
+    } else {
+        original
     }
 }
 
@@ -110,7 +131,6 @@ mod tests {
         }
 
         let mut system = IntoSystem::into_system(sys);
-        let system_id = common::SystemId::from_type(system.type_id());
         assert_eq!(
             system.name(),
             "bevy_harmonize_api::ecs::system::tests::system_with_param::sys"
@@ -120,6 +140,6 @@ mod tests {
 
         let meta = into_metadata(sys);
         assert_eq!(meta.params, vec![common::Param::Command]);
-        assert_eq!(meta.id, system_id);
+        assert_eq!(meta.id, sys.get_system_id());
     }
 }

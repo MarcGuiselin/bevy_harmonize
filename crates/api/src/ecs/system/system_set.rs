@@ -126,17 +126,13 @@ mod tests {
     use super::*;
     use crate::prelude::Commands;
 
-    fn get_system_id<Marker>(system: impl IntoSystem<(), (), Marker>) -> SystemId {
-        SystemId::from_type(IntoSystem::get_type_id(&system))
-    }
-
     fn make_system<Marker, F>(system: F, params: Vec<Param<'static>>) -> System<'static>
     where
         F: IntoSystem<(), (), Marker>,
     {
         System {
-            id: get_system_id(system),
-            name: std::any::type_name::<F::System>(),
+            id: system.get_system_id(),
+            name: system.get_name(),
             params,
         }
     }
@@ -162,7 +158,7 @@ mod tests {
 
         assert_eq!(
             into_system_sets(system_set),
-            vec![Sys::Anonymous(get_system_id(system))]
+            vec![Sys::Anonymous(system.get_system_id())]
         );
         assert_eq!(
             into_systems(system_set),
@@ -194,8 +190,8 @@ mod tests {
         assert_eq!(
             into_system_sets(system_set),
             vec![
-                Sys::Anonymous(get_system_id(system1)),
-                Sys::Anonymous(get_system_id(system2)),
+                Sys::Anonymous(system1.get_system_id()),
+                Sys::Anonymous(system2.get_system_id()),
                 Sys::Named(StableId::from_typed::<NamedSet>()),
             ]
         );

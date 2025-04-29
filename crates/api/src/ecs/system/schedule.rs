@@ -161,19 +161,15 @@ where
 #[cfg(test)]
 mod tests {
     use bevy_reflect::Reflect;
-    use common::{Param, System, SystemId};
+    use common::{Param, System};
 
     use super::*;
     use crate::{ecs::system::IntoSystem, prelude::Commands};
 
-    fn get_system_id<Marker>(system: impl IntoSystem<(), (), Marker>) -> SystemId {
-        SystemId::from_type(IntoSystem::get_type_id(&system))
-    }
-
     fn get_anonymous_system_set<Marker>(
         system: impl IntoSystem<(), (), Marker>,
     ) -> common::SystemSet<'static> {
-        common::SystemSet::Anonymous(vec![get_system_id(system)])
+        common::SystemSet::Anonymous(vec![system.get_system_id()])
     }
 
     fn get_named_system_set<T>() -> common::SystemSet<'static>
@@ -188,8 +184,8 @@ mod tests {
         F: IntoSystem<(), (), Marker>,
     {
         System {
-            id: get_system_id(system),
-            name: std::any::type_name::<F::System>(),
+            id: system.get_system_id(),
+            name: system.get_name(),
             params,
         }
     }
