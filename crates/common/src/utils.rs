@@ -31,10 +31,6 @@ impl Into<u64> for RawWasmVec {
 }
 
 impl RawWasmVec {
-    fn new(ptr: usize, len: usize) -> Self {
-        Self { ptr, len }
-    }
-
     pub fn into_range(&self) -> Range<usize> {
         self.ptr..self.ptr + self.len
     }

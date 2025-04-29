@@ -94,23 +94,6 @@ where
     Ok(())
 }
 
-pub async fn empty_dir<P>(path: P) -> Result<()>
-where
-    P: AsRef<Path>,
-{
-    let mut entries = read_dir(path).await?;
-
-    while let Some(entry) = entries.try_next().await? {
-        let path = entry.path();
-        if entry.file_type().await?.is_dir() {
-            remove_dir_all(path).await?;
-        } else {
-            remove_file(path).await?;
-        }
-    }
-    Ok(())
-}
-
 /// Iterates through a directory's descendents, deleting those for whom the condition yields true
 pub async fn empty_dir_conditional<P, C>(path: P, condition: C) -> Result<()>
 where
@@ -129,16 +112,6 @@ where
             }
         }
     }
-    Ok(())
-}
-
-pub async fn create_dir_all_empty<P>(path: P) -> Result<()>
-where
-    P: AsRef<Path>,
-{
-    let path = path.as_ref();
-    create_dir_all(path).await?;
-    empty_dir(path).await?;
     Ok(())
 }
 

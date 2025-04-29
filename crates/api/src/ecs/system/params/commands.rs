@@ -58,4 +58,5 @@ impl<'a> EntityCommands<'a> {
 
 /// Similar to bevy's Entity
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct Entity(u32);
