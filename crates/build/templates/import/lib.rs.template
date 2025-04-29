@@ -3,6 +3,7 @@
 
 use core::any::type_name;
 
+#[must_use]
 pub const fn __resolve_component_id<T>() -> usize {
     let name = type_name::<T>();
     match components(name.as_bytes()) {
@@ -11,6 +12,7 @@ pub const fn __resolve_component_id<T>() -> usize {
     }
 }
 
+#[must_use]
 pub const fn __resolve_address<T>() -> *mut T {
     let name = type_name::<T>();
     let alignment = align_of::<T>();

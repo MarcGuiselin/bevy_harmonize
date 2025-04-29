@@ -93,11 +93,11 @@ fn update_build(mut task: ResMut<BuildTask>, mut mods: ResMut<Mods>) {
     if task.trigger_build.try_recv().is_ok() && task.compute.is_none() {
         info!("trigger_build!");
 
-        let debug = cfg!(debug_assertions);
+        let release = true; // !cfg!(debug_assertions);
         let mods_directory = Path::new(MOD_DIR).to_path_buf();
         let cargo_directory = Path::new(CARGO_DIR).to_path_buf();
 
-        let future = build(!debug, mods_directory, cargo_directory);
+        let future = build(release, mods_directory, cargo_directory);
         task.compute
             .replace(AsyncComputeTaskPool::get().spawn(future));
     }

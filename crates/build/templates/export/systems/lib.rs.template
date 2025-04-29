@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use api::ecs::system::{IntoSystem, System};
 
 #[no_mangle]

@@ -119,3 +119,56 @@ async fn output_cargo_std<const ERROR: bool>(output: impl Read + Unpin) {
         }
     }
 }
+
+pub struct GenericCommand {
+    name: std::ffi::OsString,
+    inner: Command,
+}
+
+impl GenericCommand {
+    pub fn new<S: AsRef<OsStr>>(program: S) -> Result<Self> {
+        let name = program.as_ref().to_os_string();
+        let program = which::which(program.as_ref())?;
+        let command = Command::new(program);
+        Ok(Self {
+            name,
+            inner: command,
+        })
+    }
+
+    pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
+        self.inner.arg(arg);
+        self
+    }
+
+    pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Self {
+        self.inner.current_dir(dir);
+        self
+    }
+
+    pub async fn spawn(&mut self) -> Result<()> {
+        let mut child = self
+            .inner
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| anyhow!(e))
+            .with_context(|| format!("Could not start {:?}", self.name))?;
+
+        let stdout = child.stdout.take().unwrap();
+        let stdout_handle = spawn(output_cargo_std::<false>(stdout));
+        let stderr = child.stderr.take().unwrap();
+        let stderr_handle = spawn(output_cargo_std::<true>(stderr));
+
+        let (status, _, _) = (child.status(), stdout_handle, stderr_handle).join().await;
+        let status = status?;
+        if !status.success() {
+            bail!("{:?} failed with status: {}", self.name, status);
+        }
+
+        info!("{:?} succeeded with status: {}", self.name, status);
+
+        Ok(())
+    }
+}
