@@ -7,6 +7,9 @@ use super::{
 use common::StableId;
 use const_vec::ConstVec;
 
+extern crate alloc;
+use alloc::vec::Vec;
+
 /// Similar in role to bevy's IntoSystemConfigs trait
 #[const_trait]
 pub trait IntoSchedule<M>
@@ -160,6 +163,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
     use bevy_reflect::Reflect;
     use common::{Param, System};
 

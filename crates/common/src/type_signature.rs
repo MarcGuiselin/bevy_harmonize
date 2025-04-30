@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use bitcode::{Decode, Encode};
 
 use crate::StableId;

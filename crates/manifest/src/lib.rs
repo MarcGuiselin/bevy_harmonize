@@ -1,6 +1,10 @@
+#![no_std]
 #![feature(const_trait_impl)]
 
-use std::{any::TypeId, collections::HashMap};
+extern crate alloc;
+use core::any::TypeId;
+
+use alloc::{collections::BTreeMap, vec};
 
 use api::schema::Schema;
 use common::{FeatureDescriptor, FileHash, ModManifest, ScheduleDescriptor, StableId};
@@ -15,7 +19,7 @@ pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
     }
 
     // There can only be one default per resource
-    let mut resources = HashMap::new();
+    let mut resources = BTreeMap::new();
     for (type_info, value) in schema.resources() {
         let id = StableId::from_type_info(type_info);
         resources.insert(type_info.type_id(), (id, value));
@@ -23,7 +27,7 @@ pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
     let resources = resources.into_values().collect();
 
     // Combine schedules with the same label together
-    let mut schedules: HashMap<TypeId, ScheduleDescriptor<'_>> = HashMap::new();
+    let mut schedules: BTreeMap<TypeId, ScheduleDescriptor<'_>> = BTreeMap::new();
     for (type_info, schedule) in schema.schedules() {
         let id = StableId::from_type_info(type_info);
         let default = ScheduleDescriptor {
@@ -60,6 +64,7 @@ pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
 // Tests
 #[cfg(test)]
 mod tests {
+    use alloc::{string::String, vec::Vec};
     use api::prelude::*;
     use common::{FieldSignature, Param, Schedule, Start, System, TypeSignature, VariantSignature};
 
@@ -122,8 +127,8 @@ mod tests {
         // In indeterminate order
         assert!(types.contains(&TypeSignature::Struct {
             ty: StableId::from_typed::<MyStruct>(),
-            size: Some(std::mem::size_of::<MyStruct>()),
-            align: Some(std::mem::align_of::<MyStruct>()),
+            size: Some(size_of::<MyStruct>()),
+            align: Some(align_of::<MyStruct>()),
             generics: Vec::new(),
             fields: vec![
                 FieldSignature {
@@ -160,8 +165,8 @@ mod tests {
             ty: StableId::from_typed::<u32>(),
             // First it's registered as a dependency of MyStruct without size/alignment
             // But then it's registered again with register_type with size/alignment
-            size: Some(std::mem::size_of::<u32>()),
-            align: Some(std::mem::align_of::<u32>()),
+            size: Some(size_of::<u32>()),
+            align: Some(align_of::<u32>()),
             generics: Vec::new(),
         }));
         assert!(types.contains(&TypeSignature::Opaque {

@@ -5,7 +5,10 @@ mod system;
 mod system_param;
 mod system_set;
 
-use core::any::{type_name, TypeId};
+use core::{
+    any::{type_name, TypeId},
+    ops::{Deref, DerefMut},
+};
 
 pub use function_system::FunctionSystem;
 pub use params::*;
@@ -75,7 +78,7 @@ fn extract_system_name(original: &'static str) -> &'static str {
 /// Wrapper type to mark a [`SystemParam`] as an input.
 pub struct In<In>(pub In);
 
-impl<T> std::ops::Deref for In<T> {
+impl<T> Deref for In<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -83,7 +86,7 @@ impl<T> std::ops::Deref for In<T> {
     }
 }
 
-impl<T> std::ops::DerefMut for In<T> {
+impl<T> DerefMut for In<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -139,7 +142,7 @@ mod tests {
         assert!(unsafe { RAN }, "system did not run");
 
         let meta = into_metadata(sys);
-        assert_eq!(meta.params, vec![common::Param::Command]);
+        assert_eq!(meta.params, [common::Param::Command]);
         assert_eq!(meta.id, sys.get_system_id());
     }
 }

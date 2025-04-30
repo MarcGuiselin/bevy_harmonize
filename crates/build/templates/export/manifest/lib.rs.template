@@ -1,7 +1,9 @@
+#![no_std]
+
 #[no_mangle]
 pub unsafe extern "C" fn run() -> u64 {
     let manifest = manifest_api::schema_to_manifest(source::SCHEMA);
-    let encoded: Vec<u8> = bitcode::encode(&manifest);
+    let encoded = bitcode::encode(&manifest);
 
     let ptr = common_api::RawWasmVec::from(encoded);
     ptr.into()

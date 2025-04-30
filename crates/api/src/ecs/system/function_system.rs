@@ -1,4 +1,4 @@
-use std::any::type_name;
+use core::any::type_name;
 
 use super::{system_param::SystemParamItem, In, IntoSystem, System, SystemParam};
 use common::SystemId;

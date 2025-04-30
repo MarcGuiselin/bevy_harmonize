@@ -1,4 +1,5 @@
 #![feature(const_trait_impl)]
+#![no_std]
 
 pub mod ecs;
 pub mod schema;

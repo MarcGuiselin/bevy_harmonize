@@ -1,14 +1,17 @@
-use std::{any::TypeId, collections::HashMap};
+extern crate alloc;
+use core::any::TypeId;
+
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use api::schema::Type as SchemaType;
 use bevy_reflect::{GenericInfo, Generics, Type, TypeInfo, VariantInfo};
 use common::{FieldSignature, GenericSignature, StableId, TypeSignature, VariantSignature};
 
-pub(crate) struct TypeSignatures(HashMap<TypeId, TypeSignature<'static>>);
+pub(crate) struct TypeSignatures(BTreeMap<TypeId, TypeSignature<'static>>);
 
 impl TypeSignatures {
     pub fn new() -> Self {
-        Self(HashMap::new())
+        Self(BTreeMap::new())
     }
 
     pub fn register_type(&mut self, ty: SchemaType) {

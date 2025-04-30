@@ -1,4 +1,5 @@
-use std::ops::Range;
+use alloc::vec::Vec;
+use core::ops::Range;
 
 /// Valid only for 32-bit wasm!
 #[derive(Debug, Clone, Copy)]

@@ -1,5 +1,8 @@
 use variadics_please::all_tuples;
 
+extern crate alloc;
+use alloc::vec::Vec;
+
 pub type Params = Vec<common::Param<'static>>;
 
 pub trait SystemParam: Sized {

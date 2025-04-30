@@ -2,6 +2,9 @@ use bevy_reflect::{
     serde::TypedReflectSerializer, FromReflect, GetTypeRegistration, TypeRegistry, Typed,
 };
 
+extern crate alloc;
+use alloc::vec::Vec;
+
 use super::Addressable;
 
 pub trait Resource

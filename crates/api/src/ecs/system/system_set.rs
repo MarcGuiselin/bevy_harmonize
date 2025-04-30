@@ -1,8 +1,10 @@
-use crate::ecs::Reflected;
-
 use super::IntoSystem;
+use crate::ecs::Reflected;
 use common::{StableId, System, SystemId};
 use variadics_please::all_tuples;
+
+extern crate alloc;
+use alloc::{vec, vec::Vec};
 
 /// Similar in role to bevy's IntoSystemConfigs trait
 pub trait IntoSystemSet<Marker>

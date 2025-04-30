@@ -1,5 +1,8 @@
 use const_vec::ConstVec;
 
+extern crate alloc;
+use alloc::boxed::Box;
+
 #[diagnostic::on_unimplemented(message = "`{Self}` is not a system", label = "invalid system")]
 pub trait System
 where

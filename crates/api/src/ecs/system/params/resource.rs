@@ -1,8 +1,9 @@
-use std::{
+use core::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
-
+extern crate alloc;
+use alloc::vec;
 use common::StableId;
 
 use crate::ecs::{

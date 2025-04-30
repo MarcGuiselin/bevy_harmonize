@@ -64,6 +64,8 @@ impl Mod {
 // Tests
 #[cfg(test)]
 mod tests {
+    use core::any::TypeId;
+
     use crate::ecs::Addressable;
 
     use super::*;
@@ -103,7 +105,7 @@ mod tests {
         assert_eq!(resources.len(), 1);
         let (stable_id, default_value) = resources[0];
         assert_eq!(stable_id().type_path_table().short_path(), "TestResource");
-        assert_eq!(default_value(), vec![4, 123]);
+        assert_eq!(default_value(), [4, 123]);
     }
 
     #[test]
@@ -118,7 +120,7 @@ mod tests {
         let Schema { types, .. } = SCHEMA;
         assert_eq!(types.len(), 1);
         let test_type = (types[0].getter)();
-        assert_eq!(test_type.type_id(), std::any::TypeId::of::<TestType>());
+        assert_eq!(test_type.type_id(), TypeId::of::<TestType>());
     }
 
     #[test]

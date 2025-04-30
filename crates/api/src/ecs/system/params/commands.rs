@@ -1,4 +1,6 @@
-use std::marker::PhantomData;
+use core::marker::PhantomData;
+extern crate alloc;
+use alloc::vec;
 
 use bevy_reflect::FromReflect;
 

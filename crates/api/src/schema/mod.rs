@@ -1,5 +1,8 @@
 use const_vec::ConstVec;
 
+extern crate alloc;
+use alloc::vec::Vec;
+
 use bevy_reflect::TypeInfo;
 
 mod a_mod;

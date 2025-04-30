@@ -1,3 +1,4 @@
+#![no_std]
 #![feature(const_trait_impl)]
 
 use api::prelude::*;

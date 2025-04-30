@@ -1,8 +1,9 @@
-use std::{
-    any::TypeId,
-    fmt,
-    hash::{DefaultHasher, Hash, Hasher},
-};
+#![no_std]
+
+extern crate alloc;
+
+use alloc::{borrow::ToOwned, string::String, vec::Vec};
+use core::{any::TypeId, fmt};
 
 use bevy_reflect::{DynamicTypePath, TypeInfo, TypePathTable, Typed};
 use bitcode::{Decode, Encode};
@@ -100,21 +101,19 @@ impl fmt::Debug for OwnedStableId {
 #[derive(Encode, Decode, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
 pub struct SystemId(u64);
 
+// Custom hasher that just returns bytes
+use core::hash::{Hash, Hasher};
+
 impl SystemId {
     pub fn of<T: ?Sized + 'static>() -> Self {
         Self::from_type(TypeId::of::<T>())
     }
 
     pub fn from_type(id: TypeId) -> Self {
-        let mut hasher = DefaultHasher::new();
+        #[allow(deprecated)]
+        let mut hasher = core::hash::SipHasher::new();
         id.hash(&mut hasher);
-        let result = hasher.finish();
-
-        Self(result)
-    }
-
-    pub fn get_raw(&self) -> u64 {
-        self.0
+        Self(hasher.finish())
     }
 }
 
@@ -184,8 +183,8 @@ impl<'a> ModManifest<'a> {
 #[derive(Encode, Decode, PartialEq, Clone)]
 pub struct FileHash([u8; 16]);
 
-impl std::fmt::Debug for FileHash {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for FileHash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "FileHash(\"")?;
         for byte in self.0.iter() {
             write!(f, "{:02x}", byte)?;
