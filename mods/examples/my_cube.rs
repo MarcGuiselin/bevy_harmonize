@@ -10,7 +10,7 @@ pub const SCHEMA: Schema = Mod::new("My cube")
 #[derive(Reflect, Default, Addressable)]
 pub struct CountFrames(pub u32);
 
-pub fn update_frame_count(mut resource: ResMut<CountFrames>) {
-    resource.0 += 1;
-    info!("Frame count: {}", resource.0);
+pub fn update_frame_count(mut frames: ResMut<CountFrames>) {
+    frames.0 += 1;
+    info!("Frame count: {}", frames.0);
 }
