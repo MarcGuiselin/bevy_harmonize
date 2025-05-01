@@ -35,7 +35,6 @@
             # Dev tools
             nixd
             wabt
-            wasm-bindgen-cli
 
             # Build tools
             pkg-config
