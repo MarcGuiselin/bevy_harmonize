@@ -1,16 +1,15 @@
-# bevy_harmonize
-
-
-**⚠️ This project is very much work-in-progress**
+# Bevy Harmonize
 
 A modding system using wasm micro-modules. Keep Bevy's ergonomic design for your modders (and yourself 😏).
+
+**⚠️ This project is very much work-in-progress**
 
 The idea is for mods to look something like this:
 
 ```rust
 use api::prelude::*;
 
-pub const SCHEMA: Schema = Mod::new("My cube")
+pub const SCHEMA: Schema = Mod::new("My frame counting mod")
     .add_resource::<CountFrames>()
     .add_systems(Update, update_frame_count)
     .into_schema();
