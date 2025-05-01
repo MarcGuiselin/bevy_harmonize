@@ -46,18 +46,6 @@ where
     Ok(())
 }
 
-pub async fn rename<P, Q>(from: P, to: Q) -> Result<()>
-where
-    P: AsRef<Path>,
-    Q: AsRef<Path>,
-{
-    let from = from.as_ref();
-    let to = to.as_ref();
-    async_fs::rename(from, to)
-        .await
-        .with_context(|| format!("Failed to rename file: {:?} -> {:?}", from, to))
-}
-
 pub async fn read<P>(path: P) -> Result<Vec<u8>>
 where
     P: AsRef<Path>,

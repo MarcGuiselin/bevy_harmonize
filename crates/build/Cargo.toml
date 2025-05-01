@@ -20,5 +20,6 @@ futures-concurrency.workspace = true
 futures-lite.workspace = true
 sha2.workspace = true
 tracing.workspace = true
+wasmbin.workspace = true
 wasmtime.workspace = true
 which.workspace = true

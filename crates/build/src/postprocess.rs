@@ -1,14 +1,29 @@
-use std::u32;
+use std::{
+    fs::File,
+    io::{BufReader, Seek},
+    ops::Range,
+    path::Path,
+    u32,
+};
 
+use anyhow::*;
 use common::TypeSignature;
+use tracing::warn;
+use wasmbin::{
+    instructions::Instruction,
+    sections::{payload, Import, ImportDesc, ImportPath},
+    types::{Limits, MemType, PageSize},
+    visit::Visit,
+    Module,
+};
 
 /// Represents a type and it's unique allocated address in wasm memory
 ///
 /// Since the address does not overlap with other types, when we parse the compiled
 /// wasm we can easily determine for which type an instruction corresponds to
 pub struct TypeAddress<'a> {
-    pub ty: &'a TypeSignature<'a>,
-    pub address: u32,
+    pub signature: &'a TypeSignature<'a>,
+    pub address: Range<u32>,
 }
 
 impl<'a> TypeAddress<'a> {
@@ -40,9 +55,124 @@ impl<'a> TypeAddress<'a> {
                 // Ensure the address is aligned to the next multiple of the alignment
                 address -= address % align;
 
-                TypeAddress { ty, address }
+                TypeAddress {
+                    signature: ty,
+                    address: address..address + size,
+                }
             })
     }
+}
+
+pub async fn transform_wasm<P, Q>(
+    src: P,
+    dest: Q,
+    types: impl IntoIterator<Item = TypeAddress<'_>>,
+) -> Result<()>
+where
+    P: AsRef<Path>,
+    Q: AsRef<Path>,
+{
+    let file = File::open(src.as_ref())?;
+    let mut reader = BufReader::new(file);
+    let mut module = Module::decode_from(&mut reader).with_context(|| {
+        format!(
+            "Parsing error at offset 0x{:08X}",
+            reader.stream_position().unwrap()
+        )
+    })?;
+
+    let imports = module
+        .find_or_insert_std_section(|| payload::Import::default())
+        .try_contents_mut()?;
+
+    let mut address_ranges = Vec::new();
+    for ty in types {
+        let id = ty.signature.stable_id();
+
+        // Add resource memory pointers
+        imports.push(Import {
+            path: ImportPath {
+                module: "bevy".to_string(),
+                name: format!("{}::{}", id.crate_name, id.name),
+            },
+            desc: ImportDesc::Mem(MemType {
+                page_size: Some(PageSize::MIN),
+                limits: Limits { min: 0, max: None },
+            }),
+        });
+
+        // Save range to get around the borrow checker
+        address_ranges.push(ty.address);
+    }
+
+    // Adjust instructions to use correct memory indexes
+    let mut previous_const_u32 = None;
+    module.visit_mut(|instr| {
+        previous_const_u32 = match instr {
+            // Store a visited_const
+            Instruction::I32Const(value) => Some(*value),
+
+            // For all load/store instructions
+            Instruction::I32Load(arg)
+            | Instruction::I64Load(arg)
+            | Instruction::F32Load(arg)
+            | Instruction::F64Load(arg)
+            | Instruction::I32Load8S(arg)
+            | Instruction::I32Load8U(arg)
+            | Instruction::I32Load16S(arg)
+            | Instruction::I32Load16U(arg)
+            | Instruction::I64Load8S(arg)
+            | Instruction::I64Load8U(arg)
+            | Instruction::I64Load16S(arg)
+            | Instruction::I64Load16U(arg)
+            | Instruction::I64Load32S(arg)
+            | Instruction::I64Load32U(arg)
+            | Instruction::I32Store(arg)
+            | Instruction::I64Store(arg)
+            | Instruction::F32Store(arg)
+            | Instruction::F64Store(arg)
+            | Instruction::I32Store8(arg)
+            | Instruction::I32Store16(arg)
+            | Instruction::I64Store8(arg)
+            | Instruction::I64Store16(arg)
+            | Instruction::I64Store32(arg) => {
+                // Ideally we want know the exact range of possible addresses that will be accessed at runtime by this instruction
+                // Without complex ast analysis the best we do is make an educated guess for now
+                let access_min_bound = match previous_const_u32 {
+                    // If the previous instruction pushes a const u32 onto the stack, we can know the address for sure
+                    Some(offset) => arg.offset.wrapping_add(offset as u32),
+                    // Otherwise assume that it will write to some address between the offset (inclusive) and the next allocated memory address range
+                    None => arg.offset,
+                };
+
+                // Find the address range that contains the accessed address
+                // Memory index corresponds to the index of the address range in the vector
+                if let Some(id) = address_ranges.iter().enumerate().find_map(|(id, range)| {
+                    if range.contains(&access_min_bound) {
+                        Some(id)
+                    } else {
+                        None
+                    }
+                }) {
+                    warn!(
+                        "Found memory access at offset 0x{} for type {} {}",
+                        arg.offset, id, arg.memory.index
+                    );
+                    arg.memory.index = id as u32 + 1;
+                }
+
+                None
+            }
+
+            // Ignore
+            _ => None,
+        };
+    })?;
+
+    let mut out_file = File::create(dest)?;
+    module.encode_into(&mut out_file)?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -87,16 +217,20 @@ mod tests {
         let addresses = TypeAddress::from_type_signatures(types.iter()).collect::<Vec<_>>();
         assert_eq!(addresses.len(), 4);
 
-        assert_eq!(addresses[0].ty.stable_id(), id1);
-        assert_eq!(addresses[0].address, u32::MAX - 127 - 256);
+        let lower = u32::MAX - 127 - 256;
+        assert_eq!(addresses[0].signature.stable_id(), id1);
+        assert_eq!(addresses[0].address, lower..lower + 256);
 
-        assert_eq!(addresses[1].ty.stable_id(), id2);
-        assert_eq!(addresses[1].address, u32::MAX - 127 - 256 - 1);
+        let lower = u32::MAX - 127 - 256 - 1;
+        assert_eq!(addresses[1].signature.stable_id(), id2);
+        assert_eq!(addresses[1].address, lower..lower + 1);
 
-        assert_eq!(addresses[2].ty.stable_id(), id3);
-        assert_eq!(addresses[2].address, u32::MAX - 127 - 256 - 48);
+        let lower = u32::MAX - 127 - 256 - 48;
+        assert_eq!(addresses[2].signature.stable_id(), id3);
+        assert_eq!(addresses[2].address, lower..lower + 32);
 
-        assert_eq!(addresses[3].ty.stable_id(), id4);
-        assert_eq!(addresses[3].address, u32::MAX - 127 - 256 - 48 - 8);
+        let lower = u32::MAX - 127 - 256 - 48 - 8;
+        assert_eq!(addresses[3].signature.stable_id(), id4);
+        assert_eq!(addresses[3].address, lower..lower + 8);
     }
 }

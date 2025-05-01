@@ -2,7 +2,7 @@
 
 use anyhow::*;
 use common::{FileHash, ModManifest, RawWasmVec};
-use postprocess::TypeAddress;
+use postprocess::{transform_wasm, TypeAddress};
 use sha2::{Digest, Sha256};
 use std::{path::PathBuf, time::Instant};
 use tracing::{info, warn};
@@ -152,6 +152,7 @@ impl Directories {
 pub struct ModSource {
     source: PathBuf,
     name: String,
+    component_addresses: Vec<u32>,
     codegen_manifest_hash: Option<FileHash>,
 }
 
@@ -185,6 +186,7 @@ impl ModSource {
         Self {
             source,
             name: package_name,
+            component_addresses: Vec::new(),
             codegen_manifest_hash: None,
         }
     }
@@ -294,12 +296,12 @@ impl ModSource {
         let components: Vec<_> = TypeAddress::from_type_signatures(manifest.types.iter())
             .enumerate()
             .map(|(id, type_address)| {
-                let sid = type_address.ty.stable_id();
+                let sid = type_address.signature.stable_id();
                 templates::ImportsComponent {
                     crate_name: sid.crate_name,
                     name: sid.name,
                     id: id as u32,
-                    address: type_address.address,
+                    address: type_address.address.start,
                 }
             })
             .collect();
@@ -344,6 +346,10 @@ impl ModSource {
         )
         .await?;
 
+        self.component_addresses = components
+            .iter()
+            .map(|component| component.address)
+            .collect();
         self.codegen_manifest_hash = Some(FileHash::from_sha256(
             Sha256::digest(&manifest_bytes).into(),
         ));
@@ -428,7 +434,13 @@ impl ModSource {
         let src = dir.wasm_dest.join(format!("{}.wasm", package_name));
         let dest = dir.dest.join(format!("{}.wasm", self.name));
 
-        fs_utils::rename(&src, &dest).await?;
+        let manifest_path = dir.dest.join(format!("{}{}", self.name, Self::MANIFEST));
+        let manifest_bytes = fs_utils::read(&manifest_path).await?;
+        let manifest: ModManifest = bitcode::decode(&manifest_bytes)
+            .with_context(|| format!("Failed to read manifest file: {:?}", manifest_path))?;
+
+        let types = TypeAddress::from_type_signatures(manifest.types.iter());
+        transform_wasm(&src, &dest, types).await?;
 
         Ok(dest)
     }

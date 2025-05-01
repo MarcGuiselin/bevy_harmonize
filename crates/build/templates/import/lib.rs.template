@@ -41,10 +41,7 @@ struct Component {
 #[allow(dead_code)]
 const fn components(name: &'static [u8]) -> Option<Component> {
     match name {
-        //  b"my_cube_9c39e062::CountFrames" => Some(...),
-        {{#components}}
-        b"{{.crate_name}}::{{.name}}" => Some(Component{ id: {{.id}}, address: {{.address}} }),
-        {{/components}}
+        {{#components}}b"{{.crate_name}}::{{.name}}" => Some(Component{ id: {{.id}}, address: {{.address}} }),{{/components}}
         _ => None,
     }
 }

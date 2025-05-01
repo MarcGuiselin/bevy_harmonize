@@ -33,6 +33,10 @@ resolver = "2"
 members = ["crates/*", "codegen/crates/*"]
 
 [workspace.dependencies]
+wasmbin = { version = "0", features = [
+    "multi-memory",
+    "custom-page-sizes",
+], git = "https://github.com/MarcGuiselin/wasmbin.git", branch = "custom-page-sizes" }
 bitcode = { version = "0", features = [
     "derive",
 ], git = "https://github.com/MarcGuiselin/bitcode.git", branch = "bevy-integration" }
