@@ -70,14 +70,13 @@ mod tests {
 
     use super::*;
 
-    fn make_system<Marker, F>(system: F, params: Vec<Param>) -> System
+    fn make_system<Marker, F>(_system: F, params: Vec<Param>) -> System
     where
         F: IntoSystem<(), (), Marker>,
     {
         System {
-            id: system.get_system_id(),
-            name: system.get_name().to_owned(),
             params,
+            ..F::into_metadata()
         }
     }
 

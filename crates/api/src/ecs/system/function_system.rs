@@ -107,10 +107,6 @@ where
             params: F::Param::get_metadata(),
         }
     }
-
-    fn get_name(&self) -> &'static str {
-        extract_system_name(type_name::<Self::System>())
-    }
 }
 
 /// Takes a full quantified type name and extracts the system name from it.
@@ -162,6 +158,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::ecs::system::into_metadata;
+
     use super::*;
     use core::any::TypeId;
 
@@ -170,12 +168,12 @@ mod tests {
         fn function() {}
         fn another_function() {}
 
-        let system_id = function.get_system_id();
+        let system_id = into_metadata(function).id;
 
         assert_eq!(
             system_id,
-            function.get_system_id(),
-            "System::type_id should be deterministic"
+            into_metadata(function).id,
+            "SystemId should be deterministic"
         );
 
         assert_eq!(
@@ -191,8 +189,8 @@ mod tests {
         }
 
         assert_ne!(
-            function.get_system_id(),
-            another_function.get_system_id(),
+            into_metadata(function).id,
+            into_metadata(another_function).id,
             "Different systems should have different TypeIds"
         );
     }
@@ -202,7 +200,7 @@ mod tests {
         fn function_system() {}
 
         assert_eq!(
-            IntoSystem::get_name(&function_system),
+            into_metadata(function_system).name,
             "bevy_harmonize_api::ecs::system::function_system::tests::type_name_consistency::function_system",
             "System::get_name should be empty for function systems"
         );

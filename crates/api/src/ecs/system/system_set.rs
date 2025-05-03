@@ -125,22 +125,8 @@ mod tests {
     use bevy_reflect::Reflect;
     use common::Param;
 
-    extern crate alloc;
-    use alloc::borrow::ToOwned;
-
     use super::*;
-    use crate::prelude::Commands;
-
-    fn make_system<Marker, F>(system: F, params: Vec<Param>) -> System
-    where
-        F: IntoSystem<(), (), Marker>,
-    {
-        System {
-            id: system.get_system_id(),
-            name: system.get_name().to_owned(),
-            params,
-        }
-    }
+    use crate::{ecs::system::into_metadata, prelude::Commands};
 
     fn into_system_sets<T, Marker>(_systems: T) -> Vec<Sys>
     where
@@ -161,14 +147,14 @@ mod tests {
         fn system(mut _commands: Commands) {}
         let system_set = system;
 
+        let metadata = into_metadata(system);
+        assert_eq!(metadata.params, [Param::Command]);
+
         assert_eq!(
             into_system_sets(system_set),
-            vec![Sys::Anonymous(system.get_system_id())]
+            [Sys::Anonymous(into_metadata(system).id)]
         );
-        assert_eq!(
-            into_systems(system_set),
-            vec![make_system(system, vec![Param::Command])]
-        );
+        assert_eq!(into_systems(system_set), [metadata]);
     }
 
     #[test]
@@ -179,7 +165,7 @@ mod tests {
 
         assert_eq!(
             into_system_sets(system_set),
-            vec![Sys::Named(StableId::from_typed::<NamedSet>())]
+            [Sys::Named(StableId::from_typed::<NamedSet>())]
         );
         assert_eq!(into_systems(system_set), Vec::new());
     }
@@ -192,20 +178,19 @@ mod tests {
         struct NamedSet;
         let system_set = (system1, system2, NamedSet);
 
+        let metadata1 = into_metadata(system1);
+        let metadata2 = into_metadata(system2);
+        assert_eq!(metadata1.params, []);
+        assert_eq!(metadata2.params, [Param::Command]);
+
         assert_eq!(
             into_system_sets(system_set),
-            vec![
-                Sys::Anonymous(system1.get_system_id()),
-                Sys::Anonymous(system2.get_system_id()),
+            [
+                Sys::Anonymous(metadata1.id),
+                Sys::Anonymous(metadata2.id),
                 Sys::Named(StableId::from_typed::<NamedSet>()),
             ]
         );
-        assert_eq!(
-            into_systems(system_set),
-            vec![
-                make_system(system1, vec![]),
-                make_system(system2, vec![Param::Command]),
-            ]
-        );
+        assert_eq!(into_systems(system_set), [metadata1, metadata2]);
     }
 }

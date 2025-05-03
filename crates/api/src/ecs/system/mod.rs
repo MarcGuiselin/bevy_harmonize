@@ -5,10 +5,7 @@ mod system;
 mod system_param;
 mod system_set;
 
-use core::{
-    any::{type_name, TypeId},
-    ops::{Deref, DerefMut},
-};
+use core::ops::{Deref, DerefMut};
 
 pub use function_system::FunctionSystem;
 pub use params::*;
@@ -36,38 +33,6 @@ where
 
     /// Export system metadata
     fn into_metadata() -> common::System;
-
-    /// Get the [`TypeId`] of the [`System`] produced after calling [`into_system`](`IntoSystem::into_system`).
-    #[inline]
-    fn get_system_id(&self) -> common::SystemId {
-        common::SystemId::from_type(TypeId::of::<Self::System>())
-    }
-
-    #[inline]
-    fn get_name(&self) -> &'static str {
-        let full_name = type_name::<Self::System>();
-        let name = extract_system_name(full_name);
-        assert!(
-            name.len() > 0,
-            "System name is being parsed incorrectly\n   Input: {full_name}"
-        );
-        name
-    }
-}
-
-/// Takes a full quantified type name and extracts the system name from it.
-fn extract_system_name(original: &'static str) -> &'static str {
-    assert!(original.len() >= 4, "String too small to be a system name");
-    // Simplify deeply nested types (always end in >)
-    if original.chars().last() == Some('>') {
-        let start_pos = original
-            .rfind(' ')
-            .map(|start_pos| start_pos + 1usize)
-            .unwrap_or(0usize);
-        &original[start_pos..original.len() - 1]
-    } else {
-        original
-    }
 }
 
 /// Wrapper type to mark a [`SystemParam`] as an input.
@@ -88,16 +53,17 @@ impl<T> DerefMut for In<T> {
 }
 
 #[cfg(test)]
+pub(crate) fn into_metadata<Marker, In, Out, S>(_system: S) -> common::System
+where
+    S: IntoSystem<In, Out, Marker>,
+{
+    S::into_metadata()
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::prelude::Commands;
-
-    fn into_metadata<T, Marker>(_system: T) -> common::System
-    where
-        T: IntoSystem<(), (), Marker>,
-    {
-        T::into_metadata()
-    }
 
     #[test]
     fn simple_system() {
@@ -112,8 +78,9 @@ mod tests {
         system.into_system().run(());
         assert!(unsafe { RAN }, "system did not run");
 
+        let metadata = into_metadata(system);
         assert_eq!(
-            system.get_name(),
+            metadata.name,
             "bevy_harmonize_api::ecs::system::tests::simple_system::system"
         );
     }
@@ -133,10 +100,9 @@ mod tests {
 
         let meta = into_metadata(system);
         assert_eq!(meta.params, [common::Param::Command]);
-        assert_eq!(meta.id, system.get_system_id());
 
         assert_eq!(
-            system.get_name(),
+            meta.name,
             "bevy_harmonize_api::ecs::system::tests::system_with_param::system"
         );
     }

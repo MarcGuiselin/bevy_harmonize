@@ -167,16 +167,17 @@ mod tests {
     use bevy_reflect::Reflect;
     use common::{Param, System};
 
-    extern crate alloc;
-    use alloc::borrow::ToOwned;
-
     use super::*;
-    use crate::{ecs::system::IntoSystem, prelude::Commands};
+    use crate::{
+        ecs::system::{into_metadata, IntoSystem},
+        prelude::Commands,
+    };
 
     fn get_anonymous_system_set<Marker>(
         system: impl IntoSystem<(), (), Marker>,
     ) -> common::SystemSet {
-        common::SystemSet::Anonymous(vec![system.get_system_id()])
+        let metadata = into_metadata(system);
+        common::SystemSet::Anonymous(vec![metadata.id])
     }
 
     fn get_named_system_set<T>() -> common::SystemSet
@@ -190,9 +191,10 @@ mod tests {
     where
         F: IntoSystem<(), (), Marker>,
     {
+        let metadata = into_metadata(system);
         System {
-            id: system.get_system_id(),
-            name: system.get_name().to_owned(),
+            id: metadata.id,
+            name: metadata.name,
             params,
         }
     }
