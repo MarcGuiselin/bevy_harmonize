@@ -1,7 +1,7 @@
 use std::hash::{Hash, Hasher};
 
 use bevy_platform::collections::{HashMap, HashSet};
-use common::{OwnedStableId, Start, Update};
+use common::{StableId, Start, Update};
 use petgraph::{algo::TarjanScc, prelude::*};
 
 use super::LoadingError;
@@ -12,17 +12,17 @@ type Dag<T> = DiGraphMap<T, ()>;
 // These fields are read by a debug macro
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct LoadedSchedules(HashMap<common::OwnedStableId, LoadedSchedule>);
+pub struct LoadedSchedules(HashMap<StableId, LoadedSchedule>);
 
 impl LoadedSchedules {
-    pub fn try_from_schedule_descriptors<'a>(
-        descriptors: &Vec<common::ScheduleDescriptor<'a>>,
+    pub fn try_from_schedule_descriptors(
+        descriptors: &Vec<common::ScheduleDescriptor>,
     ) -> Result<Self, LoadingError> {
-        let mut schedules: HashMap<OwnedStableId, Vec<&common::Schedule<'_>>> = HashMap::default();
+        let mut schedules: HashMap<StableId, Vec<&common::Schedule>> = HashMap::default();
 
         // Allow only the default schedules for now
-        schedules.insert(OwnedStableId::from_typed::<Start>(), Vec::new());
-        schedules.insert(OwnedStableId::from_typed::<Update>(), Vec::new());
+        schedules.insert(StableId::from_typed::<Start>(), Vec::new());
+        schedules.insert(StableId::from_typed::<Update>(), Vec::new());
 
         // Group together schedules with the same schedule id
         for descriptor in descriptors {
@@ -62,7 +62,7 @@ struct LoadedSystem {
     /// In the case this is false, the scheduler can run this system first
     is_dependent: bool,
     name: String,
-    params: Vec<common::OwnedParam>,
+    params: Vec<common::Param>,
 }
 
 impl LoadedSchedule {
@@ -86,7 +86,7 @@ impl LoadedSchedule {
                     name: String::new(),
                     params: Vec::new(),
                 });
-                system.name = String::from(*name);
+                system.name = name.clone();
                 system.params = params.iter().map(common::Param::to_owned).collect();
             }
         }
@@ -260,7 +260,7 @@ impl Builder {
 #[derive(PartialEq, Eq)]
 pub enum SystemSet {
     Anonymous(HashSet<common::SystemId>),
-    Named(common::OwnedStableId),
+    Named(common::StableId),
 }
 
 impl Hash for SystemSet {

@@ -1,13 +1,13 @@
 extern crate alloc;
 use core::any::TypeId;
 
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{borrow::ToOwned, collections::BTreeMap, vec::Vec};
 
 use api::schema::Type as SchemaType;
 use bevy_reflect::{GenericInfo, Generics, Type, TypeInfo, VariantInfo};
 use common::{FieldSignature, GenericSignature, StableId, TypeSignature, VariantSignature};
 
-pub(crate) struct TypeSignatures(BTreeMap<TypeId, TypeSignature<'static>>);
+pub(crate) struct TypeSignatures(BTreeMap<TypeId, TypeSignature>);
 
 impl TypeSignatures {
     pub fn new() -> Self {
@@ -38,7 +38,7 @@ impl TypeSignatures {
                     for i in 0..field_count {
                         let field = info.field_at(i).unwrap();
                         fields.push(FieldSignature {
-                            name: field.name(),
+                            name: field.name().to_owned(),
                             ty: ty(field.ty()),
                         });
 
@@ -148,7 +148,7 @@ impl TypeSignatures {
                                 for j in 0..field_count {
                                     let field = info.field_at(j).unwrap();
                                     fields.push(FieldSignature {
-                                        name: field.name(),
+                                        name: field.name().to_owned(),
                                         ty: ty(field.ty()),
                                     });
 
@@ -159,7 +159,7 @@ impl TypeSignatures {
                                 }
 
                                 VariantSignature::Struct {
-                                    name: info.name(),
+                                    name: info.name().to_owned(),
                                     fields,
                                 }
                             }
@@ -177,11 +177,13 @@ impl TypeSignatures {
                                 }
 
                                 VariantSignature::Tuple {
-                                    name: info.name(),
+                                    name: info.name().to_owned(),
                                     fields,
                                 }
                             }
-                            VariantInfo::Unit(info) => VariantSignature::Unit { name: info.name() },
+                            VariantInfo::Unit(info) => VariantSignature::Unit {
+                                name: info.name().to_owned(),
+                            },
                         });
                     }
 
@@ -205,16 +207,16 @@ impl TypeSignatures {
         }
     }
 
-    pub fn into_vec(self) -> Vec<TypeSignature<'static>> {
+    pub fn into_vec(self) -> Vec<TypeSignature> {
         self.0.into_values().collect()
     }
 }
 
-fn ty(ty: &Type) -> StableId<'static> {
+fn ty(ty: &Type) -> StableId {
     StableId::from_type_path_table(ty.type_path_table())
 }
 
-fn generics(generics: &Generics) -> Vec<GenericSignature<'static>> {
+fn generics(generics: &Generics) -> Vec<GenericSignature> {
     generics
         .iter()
         .map(|generic| match generic {

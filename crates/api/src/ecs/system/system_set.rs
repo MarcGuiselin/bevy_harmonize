@@ -20,17 +20,17 @@ where
 
 pub struct SystemSet(Vec<Sys>);
 
-pub struct Systems(pub(crate) Vec<System<'static>>);
+pub struct Systems(pub(crate) Vec<System>);
 
 #[derive(PartialEq, Debug)]
 enum Sys {
     Anonymous(SystemId),
-    Named(StableId<'static>),
+    Named(StableId),
 }
 
 impl SystemSet {
     /// Returns a list of system sets. All anonymous systems will be contained in a single set.
-    pub(crate) fn into_min_sets(self) -> Vec<common::SystemSet<'static>> {
+    pub(crate) fn into_min_sets(self) -> Vec<common::SystemSet> {
         let mut anonymous = Vec::new();
         let mut sets = Vec::new();
 
@@ -49,7 +49,7 @@ impl SystemSet {
     }
 
     /// Returns a list of system sets. Each anonymous system will have its own set
-    pub(crate) fn into_max_sets(self) -> Vec<common::SystemSet<'static>> {
+    pub(crate) fn into_max_sets(self) -> Vec<common::SystemSet> {
         self.0
             .into_iter()
             .map(|sys| match sys {
@@ -125,16 +125,19 @@ mod tests {
     use bevy_reflect::Reflect;
     use common::Param;
 
+    extern crate alloc;
+    use alloc::borrow::ToOwned;
+
     use super::*;
     use crate::prelude::Commands;
 
-    fn make_system<Marker, F>(system: F, params: Vec<Param<'static>>) -> System<'static>
+    fn make_system<Marker, F>(system: F, params: Vec<Param>) -> System
     where
         F: IntoSystem<(), (), Marker>,
     {
         System {
             id: system.get_system_id(),
-            name: system.get_name(),
+            name: system.get_name().to_owned(),
             params,
         }
     }
@@ -146,7 +149,7 @@ mod tests {
         T::into_system_set().0
     }
 
-    fn into_systems<T, Marker>(_systems: T) -> Vec<System<'static>>
+    fn into_systems<T, Marker>(_systems: T) -> Vec<System>
     where
         T: IntoSystemSet<Marker>,
     {

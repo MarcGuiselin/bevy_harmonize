@@ -17,4 +17,4 @@ api = { package = "bevy_harmonize_api", path = "../../../crates/api" }
 __imports = { package = "{{name}}_imports", path = "../{{name}}_imports" }
 
 bevy_reflect.workspace = true
-bitcode.workspace = true
+bincode.workspace = true

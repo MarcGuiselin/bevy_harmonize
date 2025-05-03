@@ -290,8 +290,11 @@ impl ModSource {
 
         let manifest_path = dir.dest.join(format!("{}{}", self.name, Self::MANIFEST));
         let manifest_bytes = fs_utils::read(&manifest_path).await?;
-        let manifest: ModManifest = bitcode::decode(&manifest_bytes)
-            .with_context(|| format!("Failed to read manifest file: {:?}", manifest_path))?;
+        let (manifest, _) = bincode::decode_from_slice::<ModManifest, _>(
+            &manifest_bytes[..],
+            bincode::config::standard(),
+        )
+        .with_context(|| format!("Failed to read manifest file: {:?}", manifest_path))?;
 
         let components: Vec<_> = TypeAddress::from_type_signatures(manifest.types.iter())
             .enumerate()
@@ -321,7 +324,7 @@ impl ModSource {
             .enumerate()
             .map(|(id, system)| templates::ExportsSystem {
                 id: id as u32,
-                name: system.name,
+                name: &system.name,
             })
             .collect();
 
@@ -410,7 +413,10 @@ impl ModSource {
                 warn!("Manifest changed for {}", self.name);
             }
 
-            let manifest: ModManifest = bitcode::decode(&manifest_bytes)?;
+            let (manifest, _) = bincode::decode_from_slice::<ModManifest, _>(
+                &manifest_bytes[..],
+                bincode::config::standard(),
+            )?;
 
             let as_string = format!("{:#?}", manifest);
             let path = dir
@@ -418,7 +424,7 @@ impl ModSource {
                 .join(format!("{}{}", self.name, Self::MANIFEST_DEBUG));
             fs_utils::write(&path, as_string).await?;
 
-            let encoded_manifest = bitcode::encode(&manifest);
+            let encoded_manifest = bincode::encode_to_vec(&manifest, bincode::config::standard())?;
             let path = dir.dest.join(format!("{}{}", self.name, Self::MANIFEST));
             fs_utils::write(&path, encoded_manifest).await?;
 
@@ -436,8 +442,11 @@ impl ModSource {
 
         let manifest_path = dir.dest.join(format!("{}{}", self.name, Self::MANIFEST));
         let manifest_bytes = fs_utils::read(&manifest_path).await?;
-        let manifest: ModManifest = bitcode::decode(&manifest_bytes)
-            .with_context(|| format!("Failed to read manifest file: {:?}", manifest_path))?;
+        let (manifest, _) = bincode::decode_from_slice::<ModManifest, _>(
+            &manifest_bytes[..],
+            bincode::config::standard(),
+        )
+        .with_context(|| format!("Failed to read manifest file: {:?}", manifest_path))?;
 
         let types = TypeAddress::from_type_signatures(manifest.types.iter());
         transform_wasm(&src, &dest, types).await?;

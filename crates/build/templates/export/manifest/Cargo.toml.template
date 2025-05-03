@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 path = "lib.rs"
 
 [dependencies]
-bitcode.workspace = true
+bincode.workspace = true
 manifest_api = { package = "bevy_harmonize_manifest", path = "../../../crates/manifest" }
 common_api = { package = "bevy_harmonize_common", path = "../../../crates/common" }
 source = { package = "{{name}}_source", path = "../{{name}}_source" }

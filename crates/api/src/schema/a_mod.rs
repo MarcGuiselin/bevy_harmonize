@@ -105,7 +105,7 @@ mod tests {
         assert_eq!(resources.len(), 1);
         let (stable_id, default_value) = resources[0];
         assert_eq!(stable_id().type_path_table().short_path(), "TestResource");
-        assert_eq!(default_value(), [4, 123]);
+        assert_eq!(default_value(), [123]);
     }
 
     #[test]

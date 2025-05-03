@@ -1,72 +1,72 @@
-use alloc::vec::Vec;
-use bitcode::{Decode, Encode};
+use alloc::{string::String, vec::Vec};
+use bincode::{Decode, Encode};
 
 use crate::StableId;
 
 /// A serializable version of [`TypeInfo`]
 #[derive(Encode, Decode, PartialEq, Debug)]
-pub enum TypeSignature<'a> {
+pub enum TypeSignature {
     Struct {
-        ty: StableId<'a>,
+        ty: StableId,
         size: Option<usize>,
         align: Option<usize>,
-        generics: Vec<GenericSignature<'a>>,
-        fields: Vec<FieldSignature<'a>>,
+        generics: Vec<GenericSignature>,
+        fields: Vec<FieldSignature>,
     },
     TupleStruct {
-        ty: StableId<'a>,
+        ty: StableId,
         size: Option<usize>,
         align: Option<usize>,
-        generics: Vec<GenericSignature<'a>>,
-        fields: Vec<StableId<'a>>,
+        generics: Vec<GenericSignature>,
+        fields: Vec<StableId>,
     },
     Tuple {
-        ty: StableId<'a>,
+        ty: StableId,
         size: Option<usize>,
         align: Option<usize>,
-        generics: Vec<GenericSignature<'a>>,
-        fields: Vec<StableId<'a>>,
+        generics: Vec<GenericSignature>,
+        fields: Vec<StableId>,
     },
     List {
-        ty: StableId<'a>,
-        generics: Vec<GenericSignature<'a>>,
-        item_ty: StableId<'a>,
+        ty: StableId,
+        generics: Vec<GenericSignature>,
+        item_ty: StableId,
     },
     Array {
-        ty: StableId<'a>,
-        generics: Vec<GenericSignature<'a>>,
-        item_ty: StableId<'a>,
+        ty: StableId,
+        generics: Vec<GenericSignature>,
+        item_ty: StableId,
         capacity: usize,
     },
     Map {
-        ty: StableId<'a>,
-        generics: Vec<GenericSignature<'a>>,
-        key_ty: StableId<'a>,
-        value_ty: StableId<'a>,
+        ty: StableId,
+        generics: Vec<GenericSignature>,
+        key_ty: StableId,
+        value_ty: StableId,
     },
     Set {
-        ty: StableId<'a>,
-        generics: Vec<GenericSignature<'a>>,
-        value_ty: StableId<'a>,
+        ty: StableId,
+        generics: Vec<GenericSignature>,
+        value_ty: StableId,
     },
     Enum {
-        ty: StableId<'a>,
+        ty: StableId,
         size: Option<usize>,
         align: Option<usize>,
-        generics: Vec<GenericSignature<'a>>,
-        variants: Vec<VariantSignature<'a>>,
+        generics: Vec<GenericSignature>,
+        variants: Vec<VariantSignature>,
     },
     Opaque {
-        ty: StableId<'a>,
+        ty: StableId,
         size: Option<usize>,
         align: Option<usize>,
-        generics: Vec<GenericSignature<'a>>,
+        generics: Vec<GenericSignature>,
     },
 }
 
-impl TypeSignature<'_> {
+impl TypeSignature {
     /// Returns the stable id of the type
-    pub fn stable_id(&self) -> StableId<'_> {
+    pub fn stable_id(&self) -> StableId {
         match self {
             TypeSignature::Struct { ty, .. }
             | TypeSignature::TupleStruct { ty, .. }
@@ -76,7 +76,7 @@ impl TypeSignature<'_> {
             | TypeSignature::Map { ty, .. }
             | TypeSignature::Set { ty, .. }
             | TypeSignature::Enum { ty, .. }
-            | TypeSignature::Opaque { ty, .. } => *ty,
+            | TypeSignature::Opaque { ty, .. } => ty.clone(),
         }
     }
 
@@ -113,30 +113,30 @@ impl TypeSignature<'_> {
 
 /// A serializable version of [`bevy_reflect::GenericInfo`]
 #[derive(Encode, Decode, PartialEq, Debug)]
-pub enum GenericSignature<'a> {
-    Type(StableId<'a>),
-    Const(StableId<'a>),
+pub enum GenericSignature {
+    Type(StableId),
+    Const(StableId),
 }
 
 /// A serializable version of [`bevy_reflect::NamedField`]
 #[derive(Encode, Decode, PartialEq, Debug)]
-pub struct FieldSignature<'a> {
-    pub name: &'a str,
-    pub ty: StableId<'a>,
+pub struct FieldSignature {
+    pub name: String,
+    pub ty: StableId,
 }
 
 /// A serializable version of [`bevy_reflect::VariantInfo`]
 #[derive(Encode, Decode, PartialEq, Debug)]
-pub enum VariantSignature<'a> {
+pub enum VariantSignature {
     Struct {
-        name: &'a str,
-        fields: Vec<FieldSignature<'a>>,
+        name: String,
+        fields: Vec<FieldSignature>,
     },
     Tuple {
-        name: &'a str,
-        fields: Vec<StableId<'a>>,
+        name: String,
+        fields: Vec<StableId>,
     },
     Unit {
-        name: &'a str,
+        name: String,
     },
 }

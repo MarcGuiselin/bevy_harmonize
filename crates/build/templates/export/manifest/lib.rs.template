@@ -3,7 +3,7 @@
 #[no_mangle]
 pub unsafe extern "C" fn run() -> u64 {
     let manifest = manifest_api::schema_to_manifest(source::SCHEMA);
-    let encoded = bitcode::encode(&manifest);
+    let encoded = bincode::encode_to_vec(&manifest, bincode::config::standard()).unwrap();
 
     let ptr = common_api::RawWasmVec::from(encoded);
     ptr.into()

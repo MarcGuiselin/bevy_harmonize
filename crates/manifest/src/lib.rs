@@ -4,7 +4,7 @@
 extern crate alloc;
 use core::any::TypeId;
 
-use alloc::{collections::BTreeMap, vec};
+use alloc::{borrow::ToOwned, collections::BTreeMap, vec};
 
 use api::schema::Schema;
 use common::{FeatureDescriptor, FileHash, ModManifest, ScheduleDescriptor, StableId};
@@ -12,7 +12,7 @@ use common::{FeatureDescriptor, FileHash, ModManifest, ScheduleDescriptor, Stabl
 mod type_signatures;
 use type_signatures::TypeSignatures;
 
-pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
+pub fn schema_to_manifest(schema: Schema) -> ModManifest {
     let mut types = TypeSignatures::new();
     for ty in schema.types() {
         types.register_type(ty);
@@ -27,7 +27,7 @@ pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
     let resources = resources.into_values().collect();
 
     // Combine schedules with the same label together
-    let mut schedules: BTreeMap<TypeId, ScheduleDescriptor<'_>> = BTreeMap::new();
+    let mut schedules: BTreeMap<TypeId, ScheduleDescriptor> = BTreeMap::new();
     for (type_info, schedule) in schema.schedules() {
         let id = StableId::from_type_info(type_info);
         let default = ScheduleDescriptor {
@@ -54,7 +54,7 @@ pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
         wasm_hash: FileHash::empty(),
         types: types.into_vec(),
         features: vec![FeatureDescriptor {
-            name: schema.name().unwrap_or("unknown"),
+            name: schema.name().unwrap_or("unknown").to_owned(),
             resources,
             schedules,
         }],
@@ -64,19 +64,19 @@ pub fn schema_to_manifest(schema: Schema) -> ModManifest<'static> {
 // Tests
 #[cfg(test)]
 mod tests {
-    use alloc::{string::String, vec::Vec};
+    use alloc::{borrow::ToOwned, string::String, vec::Vec};
     use api::prelude::*;
     use common::{FieldSignature, Param, Schedule, Start, System, TypeSignature, VariantSignature};
 
     use super::*;
 
-    fn make_system<Marker, F>(system: F, params: Vec<Param<'static>>) -> System<'static>
+    fn make_system<Marker, F>(system: F, params: Vec<Param>) -> System
     where
         F: IntoSystem<(), (), Marker>,
     {
         System {
             id: system.get_system_id(),
-            name: system.get_name(),
+            name: system.get_name().to_owned(),
             params,
         }
     }
@@ -132,11 +132,11 @@ mod tests {
             generics: Vec::new(),
             fields: vec![
                 FieldSignature {
-                    name: "foo",
+                    name: "foo".to_owned(),
                     ty: StableId::from_typed::<u32>()
                 },
                 FieldSignature {
-                    name: "bar",
+                    name: "bar".to_owned(),
                     ty: StableId::from_typed::<MyEnum>()
                 }
             ]
@@ -147,15 +147,17 @@ mod tests {
             align: None,
             generics: Vec::new(),
             variants: vec![
-                VariantSignature::Unit { name: "Left" },
+                VariantSignature::Unit {
+                    name: "Left".to_owned(),
+                },
                 VariantSignature::Tuple {
-                    name: "Middle",
+                    name: "Middle".to_owned(),
                     fields: vec![StableId::from_typed::<u32>()]
                 },
                 VariantSignature::Struct {
-                    name: "Right",
+                    name: "Right".to_owned(),
                     fields: vec![FieldSignature {
-                        name: "string",
+                        name: "string".to_owned(),
                         ty: StableId::from_typed::<String>(),
                     }],
                 }
@@ -179,8 +181,8 @@ mod tests {
         assert_eq!(
             features,
             vec![FeatureDescriptor {
-                name: "A custom name",
-                resources: vec![(StableId::from_typed::<MyStruct>(), vec![4, 2, 0])],
+                name: "A custom name".to_owned(),
+                resources: vec![(StableId::from_typed::<MyStruct>(), vec![2, 0])],
                 schedules: vec![ScheduleDescriptor {
                     id: StableId::from_typed::<Start>(),
                     schedule: Schedule {

@@ -17,7 +17,7 @@ bevy_ecs_macros.workspace = true
 bevy_platform.workspace = true
 bevy_tasks.workspace = true
 bevy_utils.workspace = true
-bitcode.workspace = true
+bincode.workspace = true
 futures-lite.workspace = true
 notify.workspace = true
 petgraph.workspace = true
@@ -37,9 +37,6 @@ wasmbin = { version = "0", features = [
     "multi-memory",
     "custom-page-sizes",
 ], git = "https://github.com/MarcGuiselin/wasmbin.git", branch = "custom-page-sizes" }
-bitcode = { version = "0", features = [
-    "derive",
-], git = "https://github.com/MarcGuiselin/bitcode.git", branch = "bevy-integration" }
 anyhow = "1.0.98"
 async-channel = "2.3.1"
 async-process = "2.3.0"
@@ -56,6 +53,11 @@ bevy_reflect = { version = "0.16.0", default-features = false }
 bevy_reflect_derive = "0.16.0"
 bevy_tasks = "0.16.0"
 bevy_utils = "0.16.0"
+bincode = { version = "2.0.1", default-features = false, features = [
+    "alloc",
+    "serde",
+    "derive",
+] }
 const_panic = "0.2.12"
 clap = "4.5.37"
 dunce = "1.0.5"

@@ -2,11 +2,14 @@
 
 extern crate alloc;
 
-use alloc::{borrow::ToOwned, string::String, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::{any::TypeId, fmt};
 
 use bevy_reflect::{DynamicTypePath, TypeInfo, TypePathTable, Typed};
-use bitcode::{Decode, Encode};
+use bincode::{Decode, Encode};
 
 mod schedule;
 pub use schedule::*;
@@ -21,79 +24,54 @@ mod utils;
 pub use utils::*;
 
 /// Identify structs
-#[derive(Encode, Decode, PartialEq, Eq, Hash, Clone, Copy)]
-pub struct StableId<'a> {
-    pub crate_name: &'a str,
-    // pub crate_version: &'a str, // TODO: add to bevy_reflect?
-    pub name: &'a str,
+#[derive(Encode, Decode, PartialEq, Eq, Hash, Clone)]
+pub struct StableId {
+    pub crate_name: String,
+    // pub crate_version: String, // TODO: add to bevy_reflect?
+    pub name: String,
 }
 
-impl<'a> StableId<'a> {
-    pub fn new(crate_name: &'a str, name: &'a str) -> Self {
-        StableId { crate_name, name }
+impl StableId {
+    pub fn new(crate_name: &str, name: &str) -> Self {
+        StableId {
+            crate_name: crate_name.to_string(),
+            name: name.to_string(),
+        }
     }
 
-    pub fn from_typed<T>() -> StableId<'static>
+    pub fn from_typed<T>() -> StableId
     where
         T: Typed,
     {
         Self::from_type_info(T::type_info())
     }
 
-    pub fn from_dynamic<'d>(dynamic: &'d impl DynamicTypePath) -> StableId<'d> {
+    pub fn from_dynamic(dynamic: &impl DynamicTypePath) -> StableId {
         let crate_name = dynamic.reflect_crate_name().unwrap_or("unknown");
         let name = dynamic.reflect_short_type_path();
-        StableId { crate_name, name }
+        StableId {
+            crate_name: crate_name.to_string(),
+            name: name.to_string(),
+        }
     }
 
-    pub fn from_type_info(type_info: &TypeInfo) -> StableId<'static> {
+    pub fn from_type_info(type_info: &TypeInfo) -> StableId {
         Self::from_type_path_table(type_info.type_path_table())
     }
 
-    pub fn from_type_path_table(path: &TypePathTable) -> StableId<'static> {
+    pub fn from_type_path_table(path: &TypePathTable) -> StableId {
         let crate_name = path.crate_name().unwrap_or("unknown");
         let name = path.short_path();
-        StableId { crate_name, name }
-    }
-}
-
-impl<'a> StableId<'a> {
-    pub fn to_owned(&self) -> OwnedStableId {
-        OwnedStableId {
-            crate_name: self.crate_name.to_owned(),
-            name: self.name.to_owned(),
+        StableId {
+            crate_name: crate_name.to_string(),
+            name: name.to_string(),
         }
     }
 }
 
-impl<'a> fmt::Debug for StableId<'a> {
+impl fmt::Debug for StableId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "StableId(\"{}::{}\")", self.crate_name, self.name)
-    }
-}
-
-#[derive(PartialEq, Eq, Hash, Clone)]
-pub struct OwnedStableId {
-    pub crate_name: String,
-    pub name: String,
-}
-
-impl OwnedStableId {
-    pub fn from_typed<T>() -> OwnedStableId
-    where
-        T: Typed,
-    {
-        StableId::from_typed::<T>().to_owned()
-    }
-
-    pub fn from_type_info(type_info: &TypeInfo) -> OwnedStableId {
-        StableId::from_type_info(type_info).to_owned()
-    }
-}
-
-impl fmt::Debug for OwnedStableId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "OwnedStableId(\"{}::{}\")", self.crate_name, self.name)
     }
 }
 
@@ -123,54 +101,36 @@ impl fmt::Debug for SystemId {
     }
 }
 
-#[derive(Encode, Decode, PartialEq, Eq, Debug, Clone, Hash, Copy)]
-pub enum Param<'a> {
+#[derive(Encode, Decode, PartialEq, Eq, Debug, Clone, Hash)]
+pub enum Param {
     Command,
-    Res { mutable: bool, id: StableId<'a> },
+    Res { mutable: bool, id: StableId },
     // TODO: Query, etc
 }
 
-impl Param<'_> {
-    pub fn to_owned(&self) -> OwnedParam {
-        match self {
-            Param::Command => OwnedParam::Command,
-            Param::Res { mutable, id } => OwnedParam::Res {
-                mutable: *mutable,
-                id: id.to_owned(),
-            },
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, Debug, Clone, Hash)]
-pub enum OwnedParam {
-    Command,
-    Res { mutable: bool, id: OwnedStableId },
+#[derive(Encode, Decode, PartialEq, Debug)]
+pub struct FeatureDescriptor {
+    pub name: String,
+    pub resources: Vec<(StableId, Vec<u8>)>,
+    pub schedules: Vec<schedule::ScheduleDescriptor>,
 }
 
 #[derive(Encode, Decode, PartialEq, Debug)]
-pub struct FeatureDescriptor<'a> {
-    pub name: &'a str,
-    pub resources: Vec<(StableId<'a>, Vec<u8>)>,
-    pub schedules: Vec<schedule::ScheduleDescriptor<'a>>,
-}
-
-#[derive(Encode, Decode, PartialEq, Debug)]
-pub struct ModManifest<'a> {
+pub struct ModManifest {
     pub wasm_hash: FileHash,
-    pub types: Vec<TypeSignature<'a>>,
-    pub features: Vec<FeatureDescriptor<'a>>,
+    pub types: Vec<TypeSignature>,
+    pub features: Vec<FeatureDescriptor>,
 }
 
-impl<'a> ModManifest<'a> {
+impl ModManifest {
     /// Get the list of all systems in the manifest in a deterministic order
     /// (based on the order of the features and schedules)
-    pub fn systems(&self) -> Vec<&System<'a>> {
+    pub fn systems(&self) -> Vec<&System> {
         let mut systems = Vec::new();
         for feature in &self.features {
             for schedule in &feature.schedules {
                 for system in &schedule.schedule.systems {
-                    if !systems.iter().any(|s: &&System<'_>| s.id == system.id) {
+                    if !systems.iter().any(|s: &&System| s.id == system.id) {
                         systems.push(system);
                     }
                 }

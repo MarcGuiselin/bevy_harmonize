@@ -116,7 +116,7 @@ pub struct Schedules<'a> {
 }
 
 impl<'a> Iterator for Schedules<'a> {
-    type Item = (&'static TypeInfo, common::Schedule<'static>);
+    type Item = (&'static TypeInfo, common::Schedule);
 
     fn next(&mut self) -> Option<Self::Item> {
         let current = self

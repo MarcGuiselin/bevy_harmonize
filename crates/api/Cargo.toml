@@ -8,9 +8,9 @@ common = { package = "bevy_harmonize_common", path = "../common" }
 const_vec = { package = "const_vec", path = "../const_vec" }
 derive = { package = "bevy_harmonize_derive", path = "../derive" }
 
-bitcode = { workspace = true, features = ["serde"] }
 bevy_reflect.workspace = true
 bevy_reflect_derive.workspace = true
+bincode.workspace = true
 const_panic.workspace = true
 serde.workspace = true
 tracing.workspace = true

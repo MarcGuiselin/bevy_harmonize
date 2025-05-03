@@ -13,7 +13,7 @@ use core::{
 pub use function_system::FunctionSystem;
 pub use params::*;
 pub use schedule::{IntoSchedule, Schedule};
-pub use system::{BoxedSystem, ConstParams, System};
+pub use system::System;
 pub use system_param::SystemParam;
 pub use system_set::IntoSystemSet;
 
@@ -40,7 +40,7 @@ where
     unsafe fn into_system_with_state(self, state: Self::State) -> Self::System;
 
     /// Export system metadata
-    fn into_metadata() -> common::System<'static>;
+    fn into_metadata() -> common::System;
 
     /// Get the [`TypeId`] of the [`System`] produced after calling [`into_system`](`IntoSystem::into_system`).
     #[inline]
@@ -97,7 +97,7 @@ mod tests {
     use super::*;
     use crate::prelude::Commands;
 
-    fn into_metadata<T, Marker>(_system: T) -> common::System<'static>
+    fn into_metadata<T, Marker>(_system: T) -> common::System
     where
         T: IntoSystem<(), (), Marker>,
     {

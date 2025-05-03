@@ -1,5 +1,8 @@
 use core::any::type_name;
 
+extern crate alloc;
+use alloc::borrow::ToOwned;
+
 use super::{system_param::SystemParamItem, In, IntoSystem, System, SystemParam};
 use common::SystemId;
 use variadics_please::all_tuples;
@@ -108,10 +111,10 @@ where
         }
     }
 
-    fn into_metadata() -> common::System<'static> {
+    fn into_metadata() -> common::System {
         common::System {
             id: SystemId::of::<Self::System>(),
-            name: extract_system_name(type_name::<Self::System>()),
+            name: extract_system_name(type_name::<Self::System>()).to_owned(),
             params: F::Param::get_metadata(),
         }
     }

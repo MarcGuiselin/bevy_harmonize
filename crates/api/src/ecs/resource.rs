@@ -18,7 +18,8 @@ where
 
         let registry = TypeRegistry::new();
         let serializer = TypedReflectSerializer::new(&value, &registry);
-        bitcode::serialize(&serializer).unwrap()
+
+        bincode::serde::encode_to_vec(&serializer, bincode::config::standard()).unwrap()
     }
 }
 

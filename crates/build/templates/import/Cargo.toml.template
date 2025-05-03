@@ -15,5 +15,5 @@ path = "lib.rs"
 [dependencies]
 api = { package = "bevy_harmonize_api", path = "../../../crates/api" }
 bevy_reflect.workspace = true
-bitcode.workspace = true
+bincode.workspace = true
 const_panic.workspace = true

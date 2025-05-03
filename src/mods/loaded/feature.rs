@@ -7,13 +7,13 @@ use super::{schedule::LoadedSchedules, LoadingError};
 #[derive(Debug)]
 pub struct LoadedFeature {
     pub name: String,
-    pub resources: HashMap<common::OwnedStableId, Vec<u8>>,
+    pub resources: HashMap<common::StableId, Vec<u8>>,
     pub schedules: LoadedSchedules,
 }
 
 impl LoadedFeature {
-    pub fn try_from_descriptor<'a>(
-        descriptor: &common::FeatureDescriptor<'a>,
+    pub fn try_from_descriptor(
+        descriptor: &common::FeatureDescriptor,
     ) -> Result<Self, LoadingError> {
         let schedules = LoadedSchedules::try_from_schedule_descriptors(&descriptor.schedules)?;
 

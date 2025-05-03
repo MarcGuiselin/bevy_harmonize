@@ -3,7 +3,7 @@ use variadics_please::all_tuples;
 extern crate alloc;
 use alloc::vec::Vec;
 
-pub type Params = Vec<common::Param<'static>>;
+pub type Params = Vec<common::Param>;
 
 pub trait SystemParam: Sized {
     /// Used to store data which persists across invocations of a system.

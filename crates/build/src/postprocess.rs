@@ -22,13 +22,13 @@ use wasmbin::{
 /// Since the address does not overlap with other types, when we parse the compiled
 /// wasm we can easily determine for which type an instruction corresponds to
 pub struct TypeAddress<'a> {
-    pub signature: &'a TypeSignature<'a>,
+    pub signature: &'a TypeSignature,
     pub address: Range<u32>,
 }
 
 impl<'a> TypeAddress<'a> {
     pub fn from_type_signatures(
-        types: impl Iterator<Item = &'a TypeSignature<'a>>,
+        types: impl Iterator<Item = &'a TypeSignature>,
     ) -> impl Iterator<Item = TypeAddress<'a>> {
         let mut address: u32 = u32::MAX;
         types
@@ -181,9 +181,9 @@ mod tests {
 
     use super::*;
 
-    fn new<'a>(ty: StableId<'a>, size: Option<usize>, align: Option<usize>) -> TypeSignature<'a> {
+    fn new(ty: &StableId, size: Option<usize>, align: Option<usize>) -> TypeSignature {
         TypeSignature::Struct {
-            ty,
+            ty: ty.clone(),
             size,
             align,
             generics: vec![],
@@ -201,17 +201,17 @@ mod tests {
         let invalid = StableId::new(crate_name, "invalid");
 
         let types = vec![
-            new(id1, Some(256), Some(128)),
-            new(id2, Some(1), Some(1)),
-            new(id3, Some(32), Some(16)),
-            new(id4, Some(8), Some(8)),
-            new(invalid, None, None),
-            new(invalid, None, Some(4)),
-            new(invalid, Some(4), None),
-            new(invalid, Some(4), Some(0)),
-            new(invalid, Some(3), Some(3)),
-            new(invalid, Some(4), Some(8)),
-            new(invalid, Some(256), Some(256)),
+            new(&id1, Some(256), Some(128)),
+            new(&id2, Some(1), Some(1)),
+            new(&id3, Some(32), Some(16)),
+            new(&id4, Some(8), Some(8)),
+            new(&invalid, None, None),
+            new(&invalid, None, Some(4)),
+            new(&invalid, Some(4), None),
+            new(&invalid, Some(4), Some(0)),
+            new(&invalid, Some(3), Some(3)),
+            new(&invalid, Some(4), Some(8)),
+            new(&invalid, Some(256), Some(256)),
         ];
 
         let addresses = TypeAddress::from_type_signatures(types.iter()).collect::<Vec<_>>();

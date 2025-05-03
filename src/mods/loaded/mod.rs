@@ -70,8 +70,11 @@ impl LoadedMod {
     }
 
     async fn try_from_bytes(manifest_bytes: Vec<u8>, wasm_bytes: Vec<u8>) -> LoadedModResult {
-        let manifest: common::ModManifest =
-            bitcode::decode(&manifest_bytes).map_err(|_| LoadingError::InvalidManifest)?;
+        let (manifest, _) = bincode::decode_from_slice::<common::ModManifest, _>(
+            &manifest_bytes[..],
+            bincode::config::standard(),
+        )
+        .map_err(|_| LoadingError::InvalidManifest)?;
 
         let wasm_hash = common::FileHash::from_sha256(Sha256::digest(&wasm_bytes).into());
         if wasm_hash != manifest.wasm_hash {
@@ -106,6 +109,6 @@ pub enum LoadingError {
     InvalidManifest,
     InvalidWasm(wasmer::CompileError),
     MissmatchingDependencies,
-    InvalidSchedule(common::OwnedStableId),
+    InvalidSchedule(common::StableId),
     SchedulingError(SchedulingError),
 }

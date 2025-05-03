@@ -63,7 +63,7 @@ impl const IntoSchedule<()> for Schedule {
 }
 
 impl Schedule {
-    pub(crate) fn build(self) -> common::Schedule<'static> {
+    pub(crate) fn build(self) -> common::Schedule {
         let mut constraints = Vec::new();
 
         for constraint in self.constraints.into_slice() {
@@ -125,7 +125,7 @@ enum Constraint {
     Chain,
     Before(fn() -> SystemSet),
     After(fn() -> SystemSet),
-    Includes(fn() -> StableId<'static>),
+    Includes(fn() -> StableId),
 }
 
 #[inline]
@@ -137,7 +137,7 @@ where
 }
 
 #[inline]
-const fn stable_id_getter<T>(_typed: T) -> fn() -> StableId<'static>
+const fn stable_id_getter<T>(_typed: T) -> fn() -> StableId
 where
     T: Reflected,
 {
@@ -167,29 +167,32 @@ mod tests {
     use bevy_reflect::Reflect;
     use common::{Param, System};
 
+    extern crate alloc;
+    use alloc::borrow::ToOwned;
+
     use super::*;
     use crate::{ecs::system::IntoSystem, prelude::Commands};
 
     fn get_anonymous_system_set<Marker>(
         system: impl IntoSystem<(), (), Marker>,
-    ) -> common::SystemSet<'static> {
+    ) -> common::SystemSet {
         common::SystemSet::Anonymous(vec![system.get_system_id()])
     }
 
-    fn get_named_system_set<T>() -> common::SystemSet<'static>
+    fn get_named_system_set<T>() -> common::SystemSet
     where
         T: Reflected,
     {
         common::SystemSet::Named(StableId::from_typed::<T>())
     }
 
-    fn make_system<Marker, F>(system: F, params: Vec<Param<'static>>) -> System<'static>
+    fn make_system<Marker, F>(system: F, params: Vec<Param>) -> System
     where
         F: IntoSystem<(), (), Marker>,
     {
         System {
             id: system.get_system_id(),
-            name: system.get_name(),
+            name: system.get_name().to_owned(),
             params,
         }
     }
