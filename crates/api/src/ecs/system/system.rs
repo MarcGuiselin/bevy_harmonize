@@ -10,9 +10,6 @@ where
     /// The system's output.
     type Out;
 
-    /// Returns the system's name.
-    fn name(&self) -> &'static str;
-
     /// Runs the system with the given input
     fn run(&mut self, input: Self::In) -> Self::Out;
 }

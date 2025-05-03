@@ -34,11 +34,6 @@ where
     /// Turns this value into its corresponding [`System`].
     fn into_system(self) -> Self::System;
 
-    /// Turns this value into its corresponding [`System`] with the provided state
-    ///
-    /// SAFETY: Valid State must be provided
-    unsafe fn into_system_with_state(self, state: Self::State) -> Self::System;
-
     /// Export system metadata
     fn into_metadata() -> common::System;
 
@@ -108,41 +103,41 @@ mod tests {
     fn simple_system() {
         static mut RAN: bool = false;
 
-        fn sys() {
+        fn system() {
             unsafe {
                 RAN = true;
             }
         }
 
-        let mut system = IntoSystem::into_system(sys);
-        assert_eq!(
-            system.name(),
-            "bevy_harmonize_api::ecs::system::tests::simple_system::sys"
-        );
-        system.run(());
+        system.into_system().run(());
         assert!(unsafe { RAN }, "system did not run");
+
+        assert_eq!(
+            system.get_name(),
+            "bevy_harmonize_api::ecs::system::tests::simple_system::system"
+        );
     }
 
     #[test]
     fn system_with_param() {
         static mut RAN: bool = false;
 
-        fn sys(mut _commands: Commands) {
+        fn system(mut _commands: Commands) {
             unsafe {
                 RAN = true;
             }
         }
 
-        let mut system = IntoSystem::into_system(sys);
-        assert_eq!(
-            system.name(),
-            "bevy_harmonize_api::ecs::system::tests::system_with_param::sys"
-        );
-        system.run(());
+        system.into_system().run(());
         assert!(unsafe { RAN }, "system did not run");
 
-        let meta = into_metadata(sys);
+        let meta = into_metadata(system);
         assert_eq!(meta.params, [common::Param::Command]);
-        assert_eq!(meta.id, sys.get_system_id());
+        assert_eq!(meta.id, system.get_system_id());
+
+        assert_eq!(
+            system.get_name(),
+            "bevy_harmonize_api::ecs::system::tests::system_with_param::system"
+        );
     }
 }

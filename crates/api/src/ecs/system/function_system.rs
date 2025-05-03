@@ -23,7 +23,6 @@ where
 {
     func: F,
     state: <F::Param as SystemParam>::State,
-    name: &'static str,
 }
 
 macro_rules! impl_system_function {
@@ -98,17 +97,7 @@ where
 
     fn into_system(self) -> Self::System {
         let state = F::Param::init_state();
-        // SAFETY: init_state always either produces a valid state or panics
-        unsafe { self.into_system_with_state(state) }
-    }
-
-    unsafe fn into_system_with_state(self, state: Self::State) -> Self::System {
-        let name = self.get_name();
-        FunctionSystem {
-            func: self,
-            state,
-            name,
-        }
+        FunctionSystem { func: self, state }
     }
 
     fn into_metadata() -> common::System {
@@ -140,11 +129,6 @@ where
 {
     type In = F::In;
     type Out = F::Out;
-
-    #[inline]
-    fn name(&self) -> &'static str {
-        self.name
-    }
 
     #[inline]
     fn run(&mut self, input: Self::In) -> Self::Out {
