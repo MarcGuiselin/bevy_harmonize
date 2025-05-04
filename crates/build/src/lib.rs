@@ -477,6 +477,9 @@ impl ModSource {
 
         transform_wasm(&src, &dest, &self.types).await?;
 
+        let printed = wasmprinter::print_file(&dest)?;
+        fs_utils::write(dest.with_extension("wasm.wat"), printed).await?;
+
         Ok(dest)
     }
 }

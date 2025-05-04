@@ -21,5 +21,6 @@ futures-lite.workspace = true
 sha2.workspace = true
 tracing = { workspace = true, features = ["std", "attributes"] }
 wasmbin.workspace = true
+wasmprinter.workspace = true
 wasmtime.workspace = true
 which.workspace = true
