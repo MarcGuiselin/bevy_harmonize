@@ -371,12 +371,31 @@ impl ModSource {
         config.cache_config_load_default()?;
         config.parallel_compilation(true);
 
+        struct Context {
+            panic: Option<RawWasmVec>,
+        }
+
         let engine = Engine::new(&config)?;
-        let mut store = Store::new(&engine, ());
+        let mut store = Store::new(&engine, Context { panic: None });
         let module = Module::from_file(&engine, path)?;
 
         let mut linker = Linker::new(&engine);
-        let memory = Memory::new(&mut store, MemoryType::new(18, None))?;
+
+        linker.func_wrap(
+            "bevy_harmonize",
+            "panic",
+            |mut caller: Caller<Context>, ptr: u32, len: u32| -> Result<()> {
+                let ptr = ptr as usize;
+                let len = len as usize;
+
+                caller.data_mut().panic = Some(RawWasmVec { ptr, len });
+
+                // Trap
+                Err(anyhow!("Panic in wasm module"))
+            },
+        )?;
+
+        let memory = Memory::new(&mut store, MemoryType::new(19, None))?;
         linker.define(&store, "env", "memory", memory)?;
 
         let module_name = format!("./{}_bg.js", package_name);
@@ -388,7 +407,24 @@ impl ModSource {
             .with_context(|| "Error instantiating wasm module for manifest")?;
 
         let run = instance.get_typed_func::<(), u64>(&mut store, "run")?;
-        let vec = RawWasmVec::from(run.call(&mut store, ())?);
+        let result = run.call(&mut store, ()).map_err(|e| {
+            if let Some(panic) = store.data().panic {
+                let memory = linker
+                    .get(&mut store, "env", "memory")
+                    .unwrap()
+                    .into_memory()
+                    .unwrap();
+                let bytes = &memory.data(&store)[panic.into_range()];
+                let message = String::from_utf8_lossy(&bytes[..]);
+                anyhow::anyhow!(
+                    "Panic in wasm module while generating manifest.\n{}",
+                    message
+                )
+            } else {
+                e
+            }
+        })?;
+        let vec = RawWasmVec::from(result);
 
         let memory = linker
             .get(&mut store, "env", "memory")

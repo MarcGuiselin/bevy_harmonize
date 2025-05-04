@@ -1,7 +1,11 @@
 #![feature(const_trait_impl)]
 #![no_std]
 
+pub(crate) mod external;
+
+pub mod allocator;
 pub mod ecs;
+pub mod panic;
 pub mod schema;
 
 pub mod prelude {
