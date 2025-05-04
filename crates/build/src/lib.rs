@@ -148,11 +148,11 @@ impl Directories {
 }
 
 /// A source file for a mod
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct ModSource {
     source: PathBuf,
     name: String,
-    component_addresses: Vec<u32>,
+    types: Vec<TypeAddress>,
     codegen_manifest_hash: Option<FileHash>,
 }
 
@@ -186,7 +186,7 @@ impl ModSource {
         Self {
             source,
             name: package_name,
-            component_addresses: Vec::new(),
+            types: Vec::new(),
             codegen_manifest_hash: None,
         }
     }
@@ -296,28 +296,6 @@ impl ModSource {
         )
         .with_context(|| format!("Failed to read manifest file: {:?}", manifest_path))?;
 
-        let components: Vec<_> = TypeAddress::from_type_signatures(manifest.types.iter())
-            .enumerate()
-            .map(|(id, type_address)| {
-                let sid = type_address.signature.stable_id();
-                templates::ImportsComponent {
-                    crate_name: sid.crate_name,
-                    name: sid.name,
-                    id: id as u32,
-                    address: type_address.address.start,
-                }
-            })
-            .collect();
-
-        let imports_path = dir.codegen.join(format!("{}{}", name, Self::IMPORTS));
-        fs_utils::write_template(
-            imports_path.join("lib.rs"),
-            templates::ImportsLib {
-                components: &components[..],
-            },
-        )
-        .await?;
-
         let systems: Vec<_> = manifest
             .systems()
             .iter()
@@ -349,10 +327,31 @@ impl ModSource {
         )
         .await?;
 
-        self.component_addresses = components
+        self.types = TypeAddress::from_type_signatures(manifest.types.into_iter());
+        let components: Vec<_> = self
+            .types
             .iter()
-            .map(|component| component.address)
+            .enumerate()
+            .map(|(id, type_address)| {
+                let sid = type_address.signature.stable_id();
+                templates::ImportsComponent {
+                    crate_name: sid.crate_name,
+                    name: sid.name,
+                    id: id as u32,
+                    address: type_address.address.start,
+                }
+            })
             .collect();
+
+        let imports_path = dir.codegen.join(format!("{}{}", name, Self::IMPORTS));
+        fs_utils::write_template(
+            imports_path.join("lib.rs"),
+            templates::ImportsLib {
+                components: &components[..],
+            },
+        )
+        .await?;
+
         self.codegen_manifest_hash = Some(FileHash::from_sha256(
             Sha256::digest(&manifest_bytes).into(),
         ));
@@ -476,16 +475,7 @@ impl ModSource {
         let src = dir.wasm_dest.join(format!("{}.wasm", package_name));
         let dest = dir.dest.join(format!("{}.wasm", self.name));
 
-        let manifest_path = dir.dest.join(format!("{}{}", self.name, Self::MANIFEST));
-        let manifest_bytes = fs_utils::read(&manifest_path).await?;
-        let (manifest, _) = bincode::decode_from_slice::<ModManifest, _>(
-            &manifest_bytes[..],
-            bincode::config::standard(),
-        )
-        .with_context(|| format!("Failed to read manifest file: {:?}", manifest_path))?;
-
-        let types = TypeAddress::from_type_signatures(manifest.types.iter());
-        transform_wasm(&src, &dest, types).await?;
+        transform_wasm(&src, &dest, &self.types).await?;
 
         Ok(dest)
     }

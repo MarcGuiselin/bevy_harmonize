@@ -21,15 +21,14 @@ use wasmbin::{
 ///
 /// Since the address does not overlap with other types, when we parse the compiled
 /// wasm we can easily determine for which type an instruction corresponds to
-pub struct TypeAddress<'a> {
-    pub signature: &'a TypeSignature,
+#[derive(Debug)]
+pub struct TypeAddress {
+    pub signature: TypeSignature,
     pub address: Range<u32>,
 }
 
-impl<'a> TypeAddress<'a> {
-    pub fn from_type_signatures(
-        types: impl Iterator<Item = &'a TypeSignature>,
-    ) -> impl Iterator<Item = TypeAddress<'a>> {
+impl TypeAddress {
+    pub fn from_type_signatures(types: impl Iterator<Item = TypeSignature>) -> Vec<TypeAddress> {
         let mut address: u32 = u32::MAX;
         types
             .into_iter()
@@ -60,14 +59,11 @@ impl<'a> TypeAddress<'a> {
                     address: address..address + size,
                 }
             })
+            .collect()
     }
 }
 
-pub async fn transform_wasm<P, Q>(
-    src: P,
-    dest: Q,
-    types: impl IntoIterator<Item = TypeAddress<'_>>,
-) -> Result<()>
+pub async fn transform_wasm<P, Q>(src: P, dest: Q, types: &[TypeAddress]) -> Result<()>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,
@@ -85,7 +81,6 @@ where
         .find_or_insert_std_section(|| payload::Import::default())
         .try_contents_mut()?;
 
-    let mut address_ranges = Vec::new();
     for ty in types {
         let id = ty.signature.stable_id();
 
@@ -100,9 +95,6 @@ where
                 limits: Limits { min: 0, max: None },
             }),
         });
-
-        // Save range to get around the borrow checker
-        address_ranges.push(ty.address);
     }
 
     // Adjust instructions to use correct memory indexes
@@ -147,8 +139,8 @@ where
 
                 // Find the address range that contains the accessed address
                 // Memory index corresponds to the index of the address range in the vector
-                if let Some(id) = address_ranges.iter().enumerate().find_map(|(id, range)| {
-                    if range.contains(&access_min_bound) {
+                if let Some(id) = types.iter().enumerate().find_map(|(id, ty)| {
+                    if ty.address.contains(&access_min_bound) {
                         Some(id)
                     } else {
                         None
@@ -214,7 +206,7 @@ mod tests {
             new(&invalid, Some(256), Some(256)),
         ];
 
-        let addresses = TypeAddress::from_type_signatures(types.iter()).collect::<Vec<_>>();
+        let addresses = TypeAddress::from_type_signatures(types.into_iter());
         assert_eq!(addresses.len(), 4);
 
         let lower = u32::MAX - 127 - 256;
