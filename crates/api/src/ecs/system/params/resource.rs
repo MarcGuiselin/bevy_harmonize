@@ -11,11 +11,6 @@ use crate::ecs::{
     Resource,
 };
 
-#[link(wasm_import_module = "bevy_harmonize")]
-extern "C" {
-    fn flag_component_changed(component_id: usize);
-}
-
 pub struct ResMut<'w, T>
 where
     T: Resource,
@@ -100,7 +95,7 @@ where
 {
     fn drop(&mut self) {
         if self.changed {
-            unsafe { flag_component_changed(T::COMPONENT_ID) }
+            unsafe { crate::external::flag_component_changed(T::COMPONENT_ID) }
         }
     }
 }

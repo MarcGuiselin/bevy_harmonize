@@ -6,11 +6,6 @@ use bevy_reflect::FromReflect;
 
 use crate::ecs::system::{system_param::Params, SystemParam};
 
-#[link(wasm_import_module = "bevy_harmonize")]
-extern "C" {
-    fn spawn_empty() -> u32;
-}
-
 pub struct Commands<'a>(
     // SystemParams should not be able to live outside a system
     PhantomData<&'a ()>,
@@ -36,7 +31,7 @@ impl<'a> SystemParam for Commands<'a> {
 /// Similar to bevy_ecs::system::commands::Commands
 impl<'a> Commands<'a> {
     pub fn spawn_empty(&mut self) -> EntityCommands<'a> {
-        let id = unsafe { spawn_empty() };
+        let id = unsafe { crate::external::spawn_empty() };
         EntityCommands(id, PhantomData)
     }
 }
