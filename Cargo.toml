@@ -23,7 +23,7 @@ notify.workspace = true
 petgraph.workspace = true
 sha2.workspace = true
 tracing.workspace = true
-wasmer.workspace = true
+wasmtime.workspace = true
 
 [dev-dependencies]
 bevy.workspace = true
@@ -73,7 +73,6 @@ syn = "2.0.101"
 talc = "4.4.2"
 tracing = { version = "0.1.41", default-features = false }
 variadics_please = "1.1.0"
-wasmer = "6.0.0"
 wasmprinter = "0.229.0"
 wasmtime = "32.0.0"
 which = "7.0.3"

@@ -1,16 +1,17 @@
 use std::{future::Future, path::Path};
 
+use anyhow::*;
 use bevy_app::{App, Plugin, Update};
 use bevy_ecs::system::ResMut;
 use bevy_ecs_macros::Resource;
 use bevy_tasks::{block_on, poll_once, AsyncComputeTaskPool, Task};
 use tracing::{error, info, warn};
 
-mod schedule;
-pub(crate) use schedule::{Cycle, SchedulingError};
+mod engine;
+use engine::Engine;
 
 mod loaded;
-use loaded::{LoadedMod, LoadedModResult};
+use loaded::LoadedMod;
 
 pub(crate) struct ModPlugin;
 
@@ -23,7 +24,8 @@ impl Plugin for ModPlugin {
 
 #[derive(Resource, Default)]
 pub struct Mods {
-    loading: Vec<Task<LoadedModResult>>,
+    engine: Engine,
+    loading: Vec<Task<Result<LoadedMod>>>,
     loaded: Vec<Option<LoadedMod>>,
 }
 
@@ -32,11 +34,12 @@ impl Mods {
     where
         P: AsRef<Path>,
     {
+        let engine = self.engine.clone();
         let path = path.as_ref().to_owned();
-        self.enque_loading(LoadedMod::try_from_path(path))
+        self.enque_loading(LoadedMod::try_from_path(engine, path))
     }
 
-    fn enque_loading(&mut self, future: impl Future<Output = LoadedModResult> + Send + 'static) {
+    fn enque_loading(&mut self, future: impl Future<Output = Result<LoadedMod>> + Send + 'static) {
         let thread_pool = AsyncComputeTaskPool::get();
         let task = thread_pool.spawn(future);
         self.loading.push(task);
@@ -57,7 +60,7 @@ fn handle_loading_mods(mut mods: ResMut<Mods>) {
 
     for loaded in loaded {
         match loaded {
-            Ok(loaded) => {
+            Result::Ok(loaded) => {
                 let opt = Some(loaded);
                 if mods.loaded.contains(&opt) {
                     warn!(
@@ -70,7 +73,7 @@ fn handle_loading_mods(mut mods: ResMut<Mods>) {
                 }
             }
             Err(err) => {
-                error!("Failed to load mod: {:?}", err);
+                error!("Failed to load mod:\n{:?}", err);
             }
         }
     }

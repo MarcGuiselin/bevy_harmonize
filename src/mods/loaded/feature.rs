@@ -1,6 +1,7 @@
-use bevy_platform::collections::hash_map::HashMap;
+use anyhow::Result;
+use bevy_platform::collections::HashMap;
 
-use super::{schedule::LoadedSchedules, LoadingError};
+use super::schedule::LoadedSchedules;
 
 // These fields are read by a debug macro
 #[allow(dead_code)]
@@ -12,9 +13,7 @@ pub struct LoadedFeature {
 }
 
 impl LoadedFeature {
-    pub fn try_from_descriptor(
-        descriptor: &common::FeatureDescriptor,
-    ) -> Result<Self, LoadingError> {
+    pub fn try_from_descriptor(descriptor: &common::FeatureDescriptor) -> Result<Self> {
         let schedules = LoadedSchedules::try_from_schedule_descriptors(&descriptor.schedules)?;
 
         Ok(Self {

@@ -1,25 +1,21 @@
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::path::Path;
 
+use anyhow::{Context as AnyhowContext, *};
 use sha2::{Digest, Sha256};
 use tracing::info;
 
 mod feature;
 pub use feature::LoadedFeature;
 
-use super::SchedulingError;
+use super::engine::{Engine, Instance};
 
 pub mod schedule;
 
-// These fields are read by a debug macro
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct LoadedMod {
     pub(super) manifest_hash: common::FileHash,
-    module: wasmer::Module,
     features: Vec<LoadedFeature>,
+    instance: Instance,
 }
 
 impl PartialEq for LoadedMod {
@@ -32,10 +28,7 @@ impl LoadedMod {
     /// Load a mod from a path. The path can be either:
     /// - a directory containing ".wasm" and ".manifest" files
     /// - any mod file as long as it has siblings with matching names
-    pub async fn try_from_path<P>(path: P) -> LoadedModResult
-    where
-        P: AsRef<Path>,
-    {
+    pub async fn try_from_path(engine: Engine, path: impl AsRef<Path>) -> Result<LoadedMod> {
         let path = path.as_ref();
         info!("Loading mod from path: {:?}", path);
 
@@ -51,64 +44,59 @@ impl LoadedMod {
             path
         } else {
             path.parent()
-                .ok_or(LoadingError::FileNotFound(path.to_owned(), None))?
+                .ok_or(anyhow!("Failed to find file ../{:?}", path))?
         };
 
         let package_name = file_name.split('.').next().unwrap().to_owned();
 
         let manifest_path = directory.join(format!("{}.manifest", package_name));
-        let manifest_bytes = async_fs::read(&manifest_path)
-            .await
-            .map_err(|err| LoadingError::FileNotFound(manifest_path, Some(err)))?;
+        let manifest_bytes = async_fs::read(&manifest_path).await.map_err(|err| {
+            anyhow!(
+                "Failed to read manifest file {:?}: {:?}",
+                manifest_path,
+                err
+            )
+        })?;
 
         let wasm_path = directory.join(format!("{}.wasm", package_name));
         let wasm_bytes = async_fs::read(&wasm_path)
             .await
-            .map_err(|err| LoadingError::FileNotFound(wasm_path, Some(err)))?;
+            .map_err(|err| anyhow!("Failed to read wasm file {:?}: {:?}", wasm_path, err))?;
 
-        Self::try_from_bytes(manifest_bytes, wasm_bytes).await
+        Self::try_from_bytes(engine, manifest_bytes, wasm_bytes)
+            .await
+            .with_context(|| format!("Failed to load mod from path: {:?}", path))
     }
 
-    async fn try_from_bytes(manifest_bytes: Vec<u8>, wasm_bytes: Vec<u8>) -> LoadedModResult {
+    async fn try_from_bytes(
+        engine: Engine,
+        manifest_bytes: impl AsRef<[u8]>,
+        wasm_bytes: impl AsRef<[u8]>,
+    ) -> Result<LoadedMod> {
         let (manifest, _) = bincode::decode_from_slice::<common::ModManifest, _>(
-            &manifest_bytes[..],
+            manifest_bytes.as_ref(),
             bincode::config::standard(),
         )
-        .map_err(|_| LoadingError::InvalidManifest)?;
+        .map_err(|_| anyhow!("Failed to parse manifest"))?;
 
         let wasm_hash = common::FileHash::from_sha256(Sha256::digest(&wasm_bytes).into());
         if wasm_hash != manifest.wasm_hash {
-            return Err(LoadingError::MissmatchingDependencies);
+            bail!("Wasm hash does not match manifest");
         }
-
-        let manifest_hash = common::FileHash::from_sha256(Sha256::digest(&manifest_bytes).into());
-
-        let store = wasmer::Store::default();
-        let module = wasmer::Module::new(&store, wasm_bytes).map_err(LoadingError::InvalidWasm)?;
 
         let mut features = Vec::with_capacity(manifest.features.len());
         for feature in manifest.features.iter() {
             features.push(LoadedFeature::try_from_descriptor(feature)?);
         }
 
+        let manifest_hash = common::FileHash::from_sha256(Sha256::digest(&manifest_bytes).into());
+
+        let instance = Instance::new(&engine, wasm_bytes.as_ref())?;
+
         Ok(Self {
             manifest_hash,
-            module,
             features,
+            instance,
         })
     }
-}
-
-pub type LoadedModResult = Result<LoadedMod, LoadingError>;
-
-// These fields are read by a debug macro
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum LoadingError {
-    FileNotFound(PathBuf, Option<io::Error>),
-    InvalidManifest,
-    InvalidWasm(wasmer::CompileError),
-    MissmatchingDependencies,
-    InvalidSchedule(common::StableId),
-    SchedulingError(SchedulingError),
 }

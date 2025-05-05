@@ -1,11 +1,9 @@
 use std::hash::{Hash, Hasher};
 
+use anyhow::*;
 use bevy_platform::collections::{HashMap, HashSet};
 use common::{StableId, Start, Update};
 use petgraph::{algo::TarjanScc, prelude::*};
-
-use super::LoadingError;
-use crate::mods::{Cycle, SchedulingError};
 
 type Dag<T> = DiGraphMap<T, ()>;
 
@@ -17,7 +15,7 @@ pub struct LoadedSchedules(HashMap<StableId, LoadedSchedule>);
 impl LoadedSchedules {
     pub fn try_from_schedule_descriptors(
         descriptors: &Vec<common::ScheduleDescriptor>,
-    ) -> Result<Self, LoadingError> {
+    ) -> Result<Self> {
         let mut schedules: HashMap<StableId, Vec<&common::Schedule>> = HashMap::default();
 
         // Allow only the default schedules for now
@@ -29,15 +27,19 @@ impl LoadedSchedules {
             let schedule_id = descriptor.id.to_owned();
             schedules
                 .get_mut(&schedule_id)
-                .ok_or(LoadingError::InvalidSchedule(schedule_id))?
+                .ok_or(anyhow!(
+                    "Schedule descriptor with id {:?} not found",
+                    schedule_id
+                ))?
                 .push(&descriptor.schedule);
         }
 
         let mut inner = HashMap::default();
         for (id, schedules) in schedules {
             if !schedules.is_empty() {
-                let loaded = LoadedSchedule::try_from_schedules(&schedules[..])
-                    .map_err(LoadingError::SchedulingError)?;
+                let loaded = LoadedSchedule::try_from_schedules(&schedules[..]).map_err(|err| {
+                    anyhow!("Failed to load schedule with id {:?}: {:?}", id, err)
+                })?;
                 inner.insert(id, loaded);
             }
         }
@@ -66,7 +68,7 @@ struct LoadedSystem {
 }
 
 impl LoadedSchedule {
-    pub fn try_from_schedules(schedules: &[&common::Schedule]) -> Result<Self, SchedulingError> {
+    pub fn try_from_schedules(schedules: &[&common::Schedule]) -> Result<Self> {
         let mut builder = Builder::default();
 
         // Add constraints to the dependency graph
@@ -102,7 +104,7 @@ struct Builder {
 }
 
 impl Builder {
-    fn add_constraint(&mut self, constraint: &common::Constraint) -> Result<(), SchedulingError> {
+    fn add_constraint(&mut self, constraint: &common::Constraint) -> Result<()> {
         match constraint {
             common::Constraint::Order { before, after } => {
                 let (_, before) = self.populate_set_nodes(before)?;
@@ -132,13 +134,10 @@ impl Builder {
     }
 
     /// For a given set, resolves the before and after nodes
-    fn populate_set_nodes(
-        &mut self,
-        set: &common::SystemSet,
-    ) -> Result<(Node, Node), SchedulingError> {
+    fn populate_set_nodes(&mut self, set: &common::SystemSet) -> Result<(Node, Node)> {
         match set {
             common::SystemSet::Anonymous(systems) => match systems.len() {
-                0 => Err(SchedulingError::EmptyAnonymousSet),
+                0 => Err(anyhow!("Empty anonymous set")),
                 1 => {
                     let id = Node::System(systems[0]);
                     Ok((id, id))
@@ -179,29 +178,26 @@ impl Builder {
         (Node::SetStart(id), Node::SetEnd(id))
     }
 
-    fn build(self) -> Result<LoadedSchedule, SchedulingError> {
-        let mut cycles = Vec::new();
+    fn build(self) -> Result<LoadedSchedule> {
+        let mut cycles: Vec<Vec<_>> = Vec::new();
         let mut reverse_nodes = Vec::with_capacity(self.dependency.node_count());
         TarjanScc::new().run(&self.dependency, |scc| {
             if scc.len() == 1 {
                 reverse_nodes.push(scc[0]);
             } else {
-                cycles.push(Cycle(
+                cycles.push(
                     scc.iter()
                         .filter_map(|node| match node {
                             Node::System(system) => Some(*system),
                             _ => None,
                         })
                         .collect(),
-                ));
+                );
             }
         });
 
         if !cycles.is_empty() {
-            return Err(SchedulingError::Cycles {
-                named_set: None,
-                cycles,
-            });
+            bail!("Cycles detected in the dependency graph: {:?}", cycles);
         }
 
         let mut systems = HashMap::new();
