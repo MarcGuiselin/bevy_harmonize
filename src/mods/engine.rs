@@ -31,20 +31,18 @@ impl Default for Engine {
     }
 }
 
-pub(crate) struct Instance {
-    module: wasmtime::Module,
-}
+pub(crate) struct Module(wasmtime::Module);
 
-impl fmt::Debug for Instance {
+impl fmt::Debug for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = self.module.name().unwrap_or("unnamed");
-        f.debug_struct("Instance").field("name", &name).finish()
+        let name = self.0.name().unwrap_or("unnamed");
+        f.debug_struct("Module").field("name", &name).finish()
     }
 }
 
-impl Instance {
+impl Module {
     pub fn new(engine: &Engine, bytes: impl AsRef<[u8]>) -> Result<Self> {
         let module = wasmtime::Module::new(&engine.0, bytes)?;
-        Ok(Self { module })
+        Ok(Self(module))
     }
 }

@@ -7,7 +7,7 @@ use tracing::info;
 mod feature;
 pub use feature::LoadedFeature;
 
-use super::engine::{Engine, Instance};
+use super::engine::{Engine, Module};
 
 pub mod schedule;
 
@@ -15,7 +15,7 @@ pub mod schedule;
 pub struct LoadedMod {
     pub(super) manifest_hash: common::FileHash,
     features: Vec<LoadedFeature>,
-    instance: Instance,
+    module: Module,
 }
 
 impl PartialEq for LoadedMod {
@@ -91,12 +91,12 @@ impl LoadedMod {
 
         let manifest_hash = common::FileHash::from_sha256(Sha256::digest(&manifest_bytes).into());
 
-        let instance = Instance::new(&engine, wasm_bytes.as_ref())?;
+        let module = Module::new(&engine, wasm_bytes.as_ref())?;
 
         Ok(Self {
             manifest_hash,
             features,
-            instance,
+            module,
         })
     }
 }
