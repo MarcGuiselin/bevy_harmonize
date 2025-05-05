@@ -63,10 +63,9 @@ impl TypeAddress {
     }
 }
 
-pub async fn transform_wasm<P, Q>(src: P, dest: Q, types: &[TypeAddress]) -> Result<()>
+pub async fn transform_wasm<P>(src: P, types: &[TypeAddress]) -> Result<Vec<u8>>
 where
     P: AsRef<Path>,
-    Q: AsRef<Path>,
 {
     let file = File::open(src.as_ref())?;
     let mut reader = BufReader::new(file);
@@ -161,10 +160,10 @@ where
         };
     })?;
 
-    let mut out_file = File::create(dest)?;
-    module.encode_into(&mut out_file)?;
+    let mut vec = Vec::new();
+    module.encode_into(&mut vec)?;
 
-    Ok(())
+    Ok(vec)
 }
 
 #[cfg(test)]

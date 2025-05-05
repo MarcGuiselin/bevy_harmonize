@@ -4,7 +4,7 @@ use bincode::{Decode, Encode};
 use crate::StableId;
 
 /// A serializable version of [`TypeInfo`]
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Encode, Decode, PartialEq, Debug, Clone)]
 pub enum TypeSignature {
     Struct {
         ty: StableId,
@@ -112,21 +112,21 @@ impl TypeSignature {
 }
 
 /// A serializable version of [`bevy_reflect::GenericInfo`]
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Encode, Decode, PartialEq, Debug, Clone)]
 pub enum GenericSignature {
     Type(StableId),
     Const(StableId),
 }
 
 /// A serializable version of [`bevy_reflect::NamedField`]
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Encode, Decode, PartialEq, Debug, Clone)]
 pub struct FieldSignature {
     pub name: String,
     pub ty: StableId,
 }
 
 /// A serializable version of [`bevy_reflect::VariantInfo`]
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Encode, Decode, PartialEq, Debug, Clone)]
 pub enum VariantSignature {
     Struct {
         name: String,
