@@ -398,12 +398,7 @@ impl ModSource {
             },
         )?;
 
-        let memory = Memory::new(&mut store, MemoryType::new(19, None))?;
-        linker.define(&store, "env", "memory", memory)?;
-
-        let module_name = format!("./{}_bg.js", package_name);
-        linker.func_wrap(&module_name, "__wbindgen_throw", |_: i32, _: i32| {})?;
-        linker.func_wrap(&module_name, "__wbindgen_init_externref_table", || {})?;
+        linker.define_unknown_imports_as_traps(&module)?;
 
         let instance = linker
             .instantiate(&mut store, &module)
@@ -412,11 +407,7 @@ impl ModSource {
         let run = instance.get_typed_func::<(), u64>(&mut store, "run")?;
         let result = run.call(&mut store, ()).map_err(|e| {
             if let Some(panic) = store.data().panic {
-                let memory = linker
-                    .get(&mut store, "env", "memory")
-                    .unwrap()
-                    .into_memory()
-                    .unwrap();
+                let memory = instance.get_memory(&mut store, "memory").unwrap();
                 let bytes = &memory.data(&store)[panic.into_range()];
                 let message = String::from_utf8_lossy(&bytes[..]);
                 anyhow!(
@@ -429,11 +420,7 @@ impl ModSource {
         })?;
         let vec = RawWasmVec::from(result);
 
-        let memory = linker
-            .get(&mut store, "env", "memory")
-            .unwrap()
-            .into_memory()
-            .unwrap();
+        let memory = instance.get_memory(&mut store, "memory").unwrap();
         let manifest_bytes = &memory.data(&store)[vec.into_range()];
 
         if manifest_bytes.is_empty() {
@@ -490,9 +477,9 @@ async fn cargo_build(dir: &Directories, packages: Vec<String>, release: bool) ->
     command
         .packages(packages.into_iter())
         .current_dir(dir.cargo_directory.clone())
-        .target(WASM_TARGET)
-        //.arg("build-std=panic_abort,std")
-        .env("RUSTFLAGS", "-C link-arg=--import-memory");
+        .target(WASM_TARGET);
+    //.arg("build-std=panic_abort,std")
+    //.env("RUSTFLAGS", "-C link-arg=--import-memory");
 
     if release {
         command.arg("--release");
