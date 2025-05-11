@@ -27,6 +27,7 @@ wasmtime.workspace = true
 
 [dev-dependencies]
 bevy.workspace = true
+bevy_harmonize_devtools = { path = "crates/devtools" }
 
 [workspace]
 resolver = "2"

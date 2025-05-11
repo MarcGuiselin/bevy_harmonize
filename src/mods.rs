@@ -7,15 +7,12 @@ use bevy_ecs_macros::Resource;
 use bevy_tasks::{block_on, poll_once, AsyncComputeTaskPool, Task};
 use tracing::{error, info, warn};
 
-mod engine;
-use engine::Engine;
+use crate::{engine::Engine, loaded::LoadedMod};
 
-mod loaded;
-use loaded::LoadedMod;
+/// A plugin that enables loading bevy_harmonize mods at runtime.
+pub struct ModLoaderPlugin;
 
-pub(crate) struct ModPlugin;
-
-impl Plugin for ModPlugin {
+impl Plugin for ModLoaderPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Mods>()
             .add_systems(Update, handle_loading_mods);

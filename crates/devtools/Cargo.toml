@@ -1,0 +1,18 @@
+[package]
+name = "bevy_harmonize_devtools"
+description = "A familiar, yet powerful take on a modding system for the Bevy game engine"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+bevy_harmonize = { path = "../.." }
+bevy_harmonize_build = { path = "../build" }
+
+anyhow.workspace = true
+async-channel.workspace = true
+bevy_app.workspace = true
+bevy_ecs.workspace = true
+bevy_ecs_macros.workspace = true
+bevy_tasks.workspace = true
+notify.workspace = true
+tracing.workspace = true
